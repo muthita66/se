@@ -1,0 +1,21 @@
+[2026-03-26T17:36:28.183Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-26T17:36:28.197Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-26T17:36:28.214Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-26T18:50:33.228Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-26T18:50:33.246Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-26T18:50:33.261Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-26T18:50:33.384Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-26T18:50:33.388Z] [resolveEvaluationPeriodId] Missing year/semester: undefined/undefined
+[2026-03-26T18:50:33.389Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-26T18:50:33.402Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-26T18:50:33.407Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-26T18:50:33.420Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-26T18:50:33.522Z] [resolveEvaluationPeriodId] Missing year/semester: undefined/undefined
+[2026-03-26T18:50:33.523Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-26T18:50:33.536Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-26T18:50:36.693Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-26T18:50:36.717Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-26T18:50:36.729Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-26T18:50:36.816Z] [resolveEvaluationPeriodId] Missing year/semester: undefined/undefined
+[2026-03-26T18:50:36.817Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-26T18:50:36.830Z] [ensureForm] Found 8 questions directly from section_id=1
