@@ -11,6 +11,14 @@ export async function GET(req: Request) {
         const classLevel = searchParams.get('class_level');
         const room = searchParams.get('room');
 
+        if (searchParams.get('action') === 'details') {
+            const targetId = searchParams.get('target_id');
+            if (!targetId || !y || !s) return errorResponse('Missing params', 400);
+            return successResponse(await DirectorService.getEvaluationDetails(
+                Number(y), Number(s), type as any, Number(targetId)
+            ));
+        }
+
         if (searchParams.has('type')) {
             const filters = {
                 subject_id: subjectId ? Number(subjectId) : undefined,

@@ -202,6 +202,9 @@ export const DirectorApiService = {
         if (filters?.class_level) params.append('class_level', filters.class_level);
         return fetchApi<any[]>(`/api/director/evaluation?${params.toString()}`);
     },
+    async getEvaluationDetails(year: number, semester: number, type: string, target_id: number) {
+        return fetchApi<any>(`/api/director/evaluation?action=details&year=${year}&semester=${semester}&type=${type}&target_id=${target_id}`);
+    },
 
     // --- Actors (Database Explorer) ---
     async getActors() {
@@ -218,6 +221,6 @@ export const DirectorApiService = {
     },
     async getSubjectsLookup(search?: string) {
         const q = search ? `?search=${encodeURIComponent(search)}` : '';
-        return fetchApi<any[]>(`/api/director/lookups/subjects${q}`);
+        return fetchApi<any[]>(`/api/director/subjects${q}`);
     }
 };

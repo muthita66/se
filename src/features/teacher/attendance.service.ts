@@ -3,6 +3,29 @@ import { prisma } from '@/lib/prisma';
 type AttendanceRecordInput = { enrollment_id: number | null; student_id?: number | null; status: string; remark?: string };
 type UiAttendanceRecordInput = { student_id: number; section_id: number; date: string; status: string; remark?: string };
 
+const mapStatusToDb = (status: string) => {
+    const s = String(status || "").toLowerCase();
+    const map: Record<string, string> = {
+        'present': 'มา',
+        'absent': 'ขาด',
+        'late': 'สาย',
+        'leave': 'ลา'
+    };
+    return map[s] || s;
+};
+
+const mapStatusFromDb = (status: string | null) => {
+    if (!status) return null;
+    const s = String(status).trim();
+    const map: Record<string, string> = {
+        'มา': 'present',
+        'ขาด': 'absent',
+        'สาย': 'late',
+        'ลา': 'leave'
+    };
+    return map[s] || s;
+};
+
 export const TeacherAttendanceService = {
     async getAttendanceList(teacher_id: number, teaching_assignment_id: number, date: string) {
         // 1. Get the teaching assignment to find classroom_id
@@ -58,7 +81,7 @@ export const TeacherAttendanceService = {
                 prefix: e.prefix || '',
                 first_name: e.first_name,
                 last_name: e.last_name,
-                status: record?.status || null,
+                status: mapStatusFromDb(record?.status),
                 remark: record?.remark || '',
                 record_id: record?.id || null,
             };
@@ -174,14 +197,14 @@ export const TeacherAttendanceService = {
             if (existing) {
                 await prisma.attendance_records.update({
                     where: { id: existing.id },
-                    data: { status: rec.status, remark: rec.remark || null }
+                    data: { status: mapStatusToDb(rec.status), remark: rec.remark || null }
                 });
             } else {
                 await prisma.attendance_records.create({
                     data: {
                         attendance_session_id: sessionId,
                         enrollment_id: enrollmentId,
-                        status: rec.status,
+                        status: mapStatusToDb(rec.status),
                         remark: rec.remark || null,
                     }
                 });

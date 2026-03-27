@@ -45,11 +45,9 @@ async function resolveSemesterId(year?: number, semester?: number) {
 async function ensureAdvisorEvaluationForm() {
     // 1. Robust lookup using category target_type or form name matching
     const existing: any[] = await prisma.$queryRawUnsafe(`
-        SELECT ef.* FROM evaluation_forms ef
-        LEFT JOIN evaluation_categories ec ON ec.id = ef.category_id
-        WHERE ec.target_type = 'advisor' 
-           OR ef.form_name LIKE '%ที่ปรึกษา%'
-        ORDER BY ef.id ASC LIMIT 1
+        SELECT * FROM evaluation_forms 
+        WHERE form_name LIKE '%ที่ปรึกษา%'
+        ORDER BY id ASC LIMIT 1
     `);
     
     if (existing[0]) {
@@ -65,11 +63,9 @@ async function ensureAdvisorEvaluationForm() {
 
     return prisma.$transaction(async (tx: any) => {
         const existingAgain: any[] = await tx.$queryRawUnsafe(`
-            SELECT ef.* FROM evaluation_forms ef
-            LEFT JOIN evaluation_categories ec ON ec.id = ef.category_id
-            WHERE ec.target_type = 'advisor'
-               OR ef.form_name LIKE '%ที่ปรึกษา%'
-            ORDER BY ef.id ASC LIMIT 1
+            SELECT * FROM evaluation_forms 
+            WHERE form_name LIKE '%ที่ปรึกษา%'
+            ORDER BY id ASC LIMIT 1
         `);
         
         if (existingAgain[0]) {
@@ -89,30 +85,10 @@ async function ensureAdvisorEvaluationForm() {
         const formId = nextId(formMax[0].max_id);
         let questionId = nextId(questionMax[0].max_id);
 
-        let type: any[] = await tx.$queryRawUnsafe(`SELECT id FROM evaluation_categories WHERE target_type = 'advisor' LIMIT 1`);
-        
-        // If not found by target_type, try by name
-        if (!type[0]) {
-            type = await tx.$queryRawUnsafe(`SELECT id FROM evaluation_categories WHERE name LIKE '%ที่ปรึกษา%' LIMIT 1`);
-        }
-        
-        // If still not found, create a placeholder category
-        let categoryId;
-        if (!type[0]) {
-             const catMax: any[] = await tx.$queryRawUnsafe(`SELECT MAX(id) as max_id FROM evaluation_categories`);
-             categoryId = nextId(catMax[0].max_id);
-             await tx.$executeRawUnsafe(`
-                INSERT INTO evaluation_categories (id, name, target_type)
-                VALUES ($1, 'การประเมินครูที่ปรึกษา', 'advisor')
-             `, categoryId);
-        } else {
-            categoryId = type[0].id;
-        }
-
         await tx.$executeRawUnsafe(`
-            INSERT INTO evaluation_forms (id, form_name, category_id, is_active)
-            VALUES ($1, 'แบบประเมินครูที่ปรึกษา', $2, true)
-        `, formId, categoryId);
+            INSERT INTO evaluation_forms (id, form_name, is_active)
+            VALUES ($1, 'แบบประเมินครูที่ปรึกษา', true)
+        `, formId);
 
         // Since questions require sections, we need to create a section first if missing
         let sectionMax: any[] = await tx.$queryRawUnsafe(`SELECT MAX(id) as max_id FROM evaluation_sections`);
@@ -132,7 +108,7 @@ async function ensureAdvisorEvaluationForm() {
             questions.push({ id: qId, question_text, question_type: 'rating' });
         }
 
-        return { id: formId, form_name: 'ผลประเมินโดยรวม (ครูที่ปรึกษา)', category_id: categoryId, evaluation_questions: questions };
+        return { id: formId, form_name: 'ผลประเมินโดยรวม (ครูที่ปรึกษา)', evaluation_questions: questions };
     });
 }
 

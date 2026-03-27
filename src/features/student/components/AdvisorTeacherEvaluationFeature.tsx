@@ -54,14 +54,14 @@ export function AdvisorTeacherEvaluationFeature({ session }: AdvisorTeacherEvalu
         queryFn: () => StudentApiService.getAcademicYears(),
     });
 
+    const [year, setYear] = useState<number>(getCurrentAcademicYearBE());
+    const [semester, setSemester] = useState<number>(getAcademicSemesterDefault());
+
     const yearOptionsData = (academicYearsQuery.data as any[]) || [];
     const yearOptions = yearOptionsData.map((y: any) => Number(y.year_name));
 
     const selectedYearLookup = yearOptionsData.find((y: any) => Number(y.year_name) === Number(year));
     const semesterOptions = selectedYearLookup?.semesters || [];
-
-    const [year, setYear] = useState<number>(getCurrentAcademicYearBE());
-    const [semester, setSemester] = useState<number>(getAcademicSemesterDefault());
 
     // Sync year state if data is loaded
     useEffect(() => {

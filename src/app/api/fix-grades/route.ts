@@ -97,31 +97,11 @@ export async function GET() {
         `;
 
         if (existingForms.length === 0) {
-            log("Form not found. Seeding...");
-            // Get/create an evaluation category for teaching
-            let categoryId: number;
-            const catRows: any[] = await prisma.$queryRaw`
-                SELECT id FROM evaluation_categories WHERE name = 'การประเมินการสอน' LIMIT 1
-            `;
-            if (catRows.length > 0) {
-                categoryId = catRows[0].id;
-                log(`Existing category found: ${categoryId}`);
-            } else {
-                log("Creating new category 'การประเมินการสอน'...");
-                const newCat: any[] = await prisma.$queryRaw`
-                    INSERT INTO evaluation_categories (name, target_type, description)
-                    VALUES ('การประเมินการสอน', 'teaching', 'แบบประเมินประสิทธิภาพการสอนของครู')
-                    RETURNING id
-                `;
-                categoryId = newCat[0].id;
-                log(`New category created: ${categoryId}`);
-            }
-
-            log(`Creating form 'ประเมินการสอน' for category ${categoryId}...`);
+            log(`Creating form 'ประเมินการสอน'...`);
             // Create the form
             const formRows: any[] = await prisma.$queryRaw`
-                INSERT INTO evaluation_forms (category_id, form_name, description, is_active)
-                VALUES (${categoryId}, 'ประเมินการสอน', 'แบบประเมินประสิทธิภาพการสอน', true)
+                INSERT INTO evaluation_forms (form_name, description, is_active)
+                VALUES ('ประเมินการสอน', 'แบบประเมินประสิทธิภาพการสอน', true)
                 RETURNING id
             `;
             const formId = formRows[0].id;

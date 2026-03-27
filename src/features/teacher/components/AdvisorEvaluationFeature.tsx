@@ -9,13 +9,6 @@ interface AdvisorEvaluationFeatureProps {
     session: any;
 }
 
-function getScoreTextColor(avg: number): string {
-    if (avg >= 4) return "text-emerald-600";
-    if (avg >= 3) return "text-teal-600";
-    if (avg >= 2) return "text-amber-600";
-    return "text-rose-600";
-}
-
 // Participation summary card
 function StatCard({ label, value, color }: { label: string; value: number | string; color: string }) {
     return (
@@ -155,130 +148,6 @@ function ParticipationTable({
     );
 }
 
-// Score summary section
-function ScoreSummary({ summary, comments }: { summary: any[]; comments: any[] }) {
-    const overallAvg = summary.length > 0
-        ? summary.reduce((a, b) => a + Number(b.average), 0) / summary.length
-        : 0;
-
-    // Group by section
-    const sectionNames = Array.from(new Set(summary.map(s => s.section_name || "ไม่ระบุตอน")));
-    const grouped = sectionNames.map(name => ({
-        name,
-        items: summary.filter(s => (s.section_name || "ไม่ระบุตอน") === name)
-    }));
-
-    return (
-        <div className="space-y-8">
-            {/* Scores */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                {/* Topic list */}
-                <div className="lg:col-span-3 space-y-6">
-                    <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-                        <div className="w-1 h-5 bg-emerald-500 rounded-full" />
-                        คะแนนเฉลี่ยรายหัวข้อ
-                    </h3>
-                    {summary.length > 0 ? (
-                        <div className="space-y-8">
-                            {grouped.map((section, sIdx) => (
-                                <div key={sIdx} className="space-y-3">
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border-l-4 border-emerald-400">
-                                        <span className="text-sm md:text-base font-black text-emerald-600 uppercase tracking-wider">{section.name}</span>
-                                    </div>
-                                    <div className="space-y-1">
-                                        {section.items.map((item: any, idx: number) => {
-                                            const avg = Number(item.average || 0);
-                                            const displayTopic = item.topic.replace(/^\d+(\.\d+)?\s*/, '');
-                                            return (
-                                                <div key={idx} className="flex justify-between items-baseline gap-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/30 transition-all px-2 rounded-lg">
-                                                    <span className="text-sm md:text-base font-medium text-slate-700 leading-relaxed flex-1 min-w-0">{displayTopic}</span>
-                                                    <span className={`flex-shrink-0 text-sm font-medium ${getScoreTextColor(avg)}`}>
-                                                        {avg.toFixed(2)} <span className="text-slate-300 font-normal">/ 5</span>
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 italic font-medium">
-                            ยังไม่มีข้อมูลการประเมิน
-                        </div>
-                    )}
-                </div>
-
-                {/* Overall avg card */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="sticky top-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl p-8 border border-emerald-100 flex flex-col items-center justify-center text-center gap-4 shadow-sm h-fit">
-                        <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">คะแนนรวมเฉลี่ย</div>
-                        <div className={`text-6xl font-black tracking-tighter ${summary.length > 0 ? getScoreTextColor(overallAvg) : "text-slate-300"}`}>
-                            {summary.length > 0 ? overallAvg.toFixed(2) : "—"}
-                        </div>
-                        <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => {
-                                const filled = overallAvg >= star;
-                                const half = !filled && overallAvg >= star - 0.5;
-                                return (
-                                    <svg
-                                        key={star}
-                                        className={`w-5 h-5 ${filled || half ? "text-amber-400" : "text-slate-200"} fill-current`}
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                                    </svg>
-                                );
-                            })}
-                        </div>
-                        <p className="text-slate-500 text-xs font-bold">จาก {summary[0]?.count ?? "—"} การตอบกลับ</p>
-                    </div>
-
-                    {/* Comments section repositioned here */}
-                    <div className="space-y-4">
-                        <h3 className="text-base font-black text-slate-800 flex items-center gap-2 mb-2">
-                            <div className="w-1 h-5 bg-teal-500 rounded-full" />
-                            ข้อเสนอแนะจากนักเรียน
-                            <span className="ml-1 px-2 py-0.5 bg-teal-50 text-teal-600 text-[10px] rounded-full font-bold uppercase border border-teal-100">
-                                {comments.length} รายการ
-                            </span>
-                        </h3>
-
-                        {comments.length > 0 ? (
-                            <div className="overflow-hidden rounded-2xl border border-slate-100 shadow-sm bg-white">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-50/50 border-b border-slate-100 text-[14px] font-black text-slate-500 uppercase">
-                                        <tr>
-                                            <th className="px-4 py-3 w-28">วันที่</th>
-                                            <th className="px-4 py-3">ข้อเสนอแนะจากนักเรียน</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50">
-                                        {comments.map((c: any, idx: number) => (
-                                            <tr key={idx} className="hover:bg-teal-50/5 transition-colors">
-                                                <td className="px-4 py-3 text-[12px] text-slate-500 font-normal whitespace-nowrap align-top">
-                                                    {new Date(c.submitted_at || c.created_at).toLocaleDateString("th-TH")}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-slate-700 font-normal leading-relaxed">
-                                                    {c.text}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="py-10 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 italic font-medium text-xs">
-                                ยังไม่มีข้อเสนอแนะในภาคเรียนนี้
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeatureProps) {
     const teacher_id = session.id;
 
@@ -293,15 +162,11 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
     const [assignments, setAssignments] = useState<any[]>([]);
     const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null);
     const [subjectStudents, setSubjectStudents] = useState<any[]>([]);
-    const [subjectSummary, setSubjectSummary] = useState<any[]>([]);
-    const [subjectComments, setSubjectComments] = useState<any[]>([]);
     const [subjectSearch, setSubjectSearch] = useState("");
     const [isSubjectLoading, setIsSubjectLoading] = useState(false);
 
     // Advisor tab states
     const [advisorStudents, setAdvisorStudents] = useState<any[]>([]);
-    const [advisorSummary, setAdvisorSummary] = useState<any[]>([]);
-    const [advisorComments, setAdvisorComments] = useState<any[]>([]);
     const [advisorSearch, setAdvisorSearch] = useState("");
     const [isAdvisorLoading, setIsAdvisorLoading] = useState(false);
 
@@ -333,27 +198,20 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
         load();
     }, [activeTab, teacher_id, year, semester]);
 
-    // Load subject evaluation results when assignment changes
+    // Load subject participation status when assignment changes
     useEffect(() => {
         if (!selectedAssignmentId) {
             setSubjectStudents([]);
-            setSubjectSummary([]);
-            setSubjectComments([]);
             return;
         }
         const load = async () => {
             setIsSubjectLoading(true);
             try {
-                const [resultsData, studentsData] = await Promise.all([
-                    TeacherApiService.getTeachingEvaluationDetailed(teacher_id, selectedAssignmentId, year, semester),
-                    TeacherApiService.getTeachingStudentEvaluationResults(teacher_id, selectedAssignmentId, year, semester),
-                ]);
-                setSubjectSummary(resultsData?.summary || []);
-                setSubjectComments(resultsData?.comments || []);
+                const studentsData = await TeacherApiService.getTeachingStudentEvaluationResults(teacher_id, selectedAssignmentId, year, semester);
                 setSubjectStudents(studentsData || []);
             } catch (err) {
-                console.error("Failed to load subject results", err);
-                toast.error("ไม่สามารถโหลดข้อมูลผลประเมินได้");
+                console.error("Failed to load subject students", err);
+                toast.error("ไม่สามารถโหลดข้อมูลสถานะการประเมินได้");
             } finally {
                 setIsSubjectLoading(false);
             }
@@ -361,57 +219,23 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
         load();
     }, [selectedAssignmentId, teacher_id, year, semester]);
 
-    // Load advisor evaluation results
+    // Load advisor participation status
     useEffect(() => {
         if (activeTab !== "advisor") return;
         const load = async () => {
             setIsAdvisorLoading(true);
             try {
-                const [resSummary, resStudents] = await Promise.all([
-                    TeacherApiService.getAdvisorEvaluation(teacher_id, year, semester),
-                    TeacherApiService.getAdvisoryStudents(teacher_id, year, semester, "student_results"),
-                ]);
-
-                const topicMap = new Map<string, { total: number; count: number; section: string; topic: string }>();
-                const comments: any[] = [];
-
-                (resSummary || []).forEach((r: any) => {
-                    const topic = r.topic || "ไม่ระบุหัวข้อ";
-                    const section = r.section_name || "ไม่ระบุตอน";
-                    const key = `${section}@@${topic}`;
-                    const cur = topicMap.get(key) || { total: 0, count: 0, section, topic };
-                    topicMap.set(key, {
-                        total: cur.total + Number(r.score || 0),
-                        count: cur.count + 1,
-                        section,
-                        topic
-                    });
-                    if (r.feedback?.trim() && !comments.find((c) => c.text === r.feedback)) {
-                        comments.push({ text: r.feedback, submitted_at: r.submitted_at || r.created_at });
-                    }
-                });
-
-                const summary = Array.from(topicMap.values()).map((val) => ({
-                    topic: val.topic,
-                    section_name: val.section,
-                    count: val.count,
-                    average: val.count ? (val.total / val.count).toFixed(2) : "0",
-                }));
-
-                setAdvisorSummary(summary);
-                setAdvisorComments(comments);
+                const resStudents = await TeacherApiService.getAdvisoryStudents(teacher_id, year, semester, "student_results");
                 setAdvisorStudents(resStudents || []);
             } catch (err) {
-                console.error("Failed to load advisor results", err);
-                toast.error("ไม่สามารถโหลดข้อมูลผลประเมินได้");
+                console.error("Failed to load advisor students", err);
+                toast.error("ไม่สามารถโหลดข้อมูลสถานะการประเมินได้");
             } finally {
                 setIsAdvisorLoading(false);
             }
         };
         load();
     }, [activeTab, teacher_id, year, semester]);
-
-    const isLoading = activeTab === "subject" ? isSubjectLoading : isAdvisorLoading;
 
     return (
         <div className="space-y-6">
@@ -425,7 +249,7 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
                             Results Analysis
                         </div>
                         <h1 className="text-3xl font-black tracking-tight text-white">ผลการประเมินนักเรียน</h1>
-                        <p className="text-emerald-100 font-medium">ดูสรุปและรายละเอียดผลการประเมินในที่ปรึกษา</p>
+                        <p className="text-emerald-100 font-medium">ตรวจสอบสถานะการเข้าประเมินของนักเรียน</p>
                     </div>
                 </div>
             </section>
@@ -476,9 +300,9 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
                         </svg>
                     </div>
                     <div>
-                        <div className="text-sm font-black">ผลประเมินรายวิชาจากนักเรียน</div>
+                        <div className="text-sm font-black">สถานะการประเมินรายวิชา</div>
                         <div className={`text-xs mt-0.5 ${activeTab === "subject" ? "text-emerald-100" : "text-slate-400"}`}>
-                            ดูผลที่นักเรียนประเมินการสอนในรายวิชา
+                            ดูรายชื่อนักเรียนที่ประเมินการสอนแล้ว
                         </div>
                     </div>
                 </button>
@@ -496,9 +320,9 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
                         </svg>
                     </div>
                     <div>
-                        <div className="text-sm font-black">ผลการประเมินจากนักเรียนในที่ปรึกษา</div>
+                        <div className="text-sm font-black">สถานะการประเมินในที่ปรึกษา</div>
                         <div className={`text-xs mt-0.5 ${activeTab === "advisor" ? "text-teal-100" : "text-slate-400"}`}>
-                            ดูผลที่นักเรียนในที่ปรึกษาประเมินครู
+                            ดูรายชื่อนักเรียนในที่ปรึกษาที่ประเมินแล้ว
                         </div>
                     </div>
                 </button>
@@ -521,7 +345,7 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
                                     <option value="">— กรุณาเลือกรายวิชา —</option>
                                     {assignments.map((as) => (
                                         <option key={as.teaching_assignment_id} value={as.teaching_assignment_id}>
-                                            {as.subject_code} — {as.subject_name} ({as.class_level}/{as.room?.split("/").pop()})
+                                            {as.subject_code} — {as.subject_name} ({as.class_level})
                                         </option>
                                     ))}
                                 </select>
@@ -542,24 +366,19 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
                                 <svg className="w-16 h-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
-                                <p className="font-medium text-lg text-slate-400">กรุณาเลือกรายวิชาเพื่อดูผล</p>
+                                <p className="font-medium text-lg text-slate-400">กรุณาเลือกรายวิชาเพื่อตรวจสอบสถานะ</p>
                             </div>
                         ) : (
-                            <div className="p-8 space-y-10">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-5">
-                                        <div className="w-1 h-5 bg-emerald-500 rounded-full" />
-                                        <h2 className="text-base font-black text-slate-800 uppercase tracking-wider">สถานะการประเมินของนักเรียน</h2>
-                                    </div>
-                                    <ParticipationTable
-                                        students={subjectStudents}
-                                        searchTerm={subjectSearch}
-                                        onSearchChange={setSubjectSearch}
-                                    />
+                            <div className="p-8">
+                                <div className="flex items-center gap-2 mb-5">
+                                    <div className="w-1 h-5 bg-emerald-500 rounded-full" />
+                                    <h2 className="text-base font-black text-slate-800 uppercase tracking-wider">สถานะการประเมินของนักเรียน</h2>
                                 </div>
-
-                                <div className="border-t border-slate-100" />
-                                <ScoreSummary summary={subjectSummary} comments={subjectComments} />
+                                <ParticipationTable
+                                    students={subjectStudents}
+                                    searchTerm={subjectSearch}
+                                    onSearchChange={setSubjectSearch}
+                                />
                             </div>
                         )}
                     </div>
@@ -573,21 +392,16 @@ export function AdvisorEvaluationFeature({ session }: AdvisorEvaluationFeaturePr
                                 <p className="font-medium">กำลังโหลดข้อมูล...</p>
                             </div>
                         ) : (
-                            <div className="p-8 space-y-10">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-5">
-                                        <div className="w-1 h-5 bg-teal-500 rounded-full" />
-                                        <h2 className="text-base font-black text-slate-800 uppercase tracking-wider">สถานะการประเมินของนักเรียนในที่ปรึกษา</h2>
-                                    </div>
-                                    <ParticipationTable
-                                        students={advisorStudents}
-                                        searchTerm={advisorSearch}
-                                        onSearchChange={setAdvisorSearch}
-                                    />
+                            <div className="p-8">
+                                <div className="flex items-center gap-2 mb-5">
+                                    <div className="w-1 h-5 bg-teal-500 rounded-full" />
+                                    <h2 className="text-base font-black text-slate-800 uppercase tracking-wider">สถานะการประเมินของนักเรียนในที่ปรึกษา</h2>
                                 </div>
-
-                                <div className="border-t border-slate-100" />
-                                <ScoreSummary summary={advisorSummary} comments={advisorComments} />
+                                <ParticipationTable
+                                    students={advisorStudents}
+                                    searchTerm={advisorSearch}
+                                    onSearchChange={setAdvisorSearch}
+                                />
                             </div>
                         )}
                     </div>

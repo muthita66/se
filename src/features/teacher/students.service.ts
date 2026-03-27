@@ -357,10 +357,9 @@ export const TeacherStudentsService = {
             // (evaluator_user_id = student.user_id, target_teacher_id = teacher_id)
             // Resolve the advisor evaluation form for target_type = 'advisor'
             const advisorFormRows: any[] = await prisma.$queryRawUnsafe(`
-                SELECT ef.id FROM evaluation_forms ef
-                JOIN evaluation_categories ec ON ec.id = ef.category_id
-                WHERE LOWER(COALESCE(ec.target_type,'')) = 'advisor'
-                ORDER BY ef.id ASC LIMIT 1
+                SELECT id FROM evaluation_forms
+                WHERE form_name LIKE '%ที่ปรึกษา%'
+                ORDER BY id ASC LIMIT 1
             `);
             const advisorFormId = advisorFormRows[0]?.id ? Number(advisorFormRows[0].id) : null;
 

@@ -80,6 +80,7 @@ export const ScheduleService = {
                 scheduleItems.push({
                     id: cs.id,
                     section_id: ta.id,
+                    subject_id: ta.subject_id,
                     subject_code: subject?.subject_code || '',
                     subject_name: subject?.subject_name || '',
                     credit: subject?.credit ? Number(subject.credit) : 0,

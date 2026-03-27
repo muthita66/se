@@ -65,11 +65,23 @@ export function LearningResultsFeature({
     const history = Array.isArray(enrollmentHistoryQuery.data) ? enrollmentHistoryQuery.data : [];
 
     const registeredQuery = useQuery({
-        queryKey: ["student", "registered", year, semester],
-        queryFn: () => StudentApiService.getRegistered(year, semester),
+        queryKey: ["student", "schedule", "unique-subjects", year, semester],
+        queryFn: async () => {
+            const schedule = await StudentApiService.getClassSchedule(year, semester);
+            if (!Array.isArray(schedule)) return [];
+            
+            // Deduplicate subjects by section_id
+            const uniqueMap = new Map();
+            for (const item of schedule) {
+                if (!uniqueMap.has(item.section_id)) {
+                    uniqueMap.set(item.section_id, item);
+                }
+            }
+            return Array.from(uniqueMap.values());
+        },
         enabled: activeResultTab === "subject" && !advisorOnlyMode,
     });
-    const registeredSubjects = Array.isArray(registeredQuery.data) ? registeredQuery.data : [];
+    const registeredSubjects = registeredQuery.data || [];
 
     const queryAdvisor = useQuery({
         queryKey: ['advisor-evaluation', student?.id, year, semester],
@@ -488,7 +500,7 @@ export function LearningResultsFeature({
             </section>
 
             {!hideResultTabs && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <button
                         onClick={() => setActiveResultTab("subject")}
                         className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-left font-semibold transition-all duration-300 border-2 ${activeResultTab === "subject"
@@ -525,23 +537,6 @@ export function LearningResultsFeature({
                         </div>
                     </button>
 
-                    <button
-                        onClick={() => setActiveResultTab("sdq")}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-left font-semibold transition-all duration-300 border-2 ${activeResultTab === "sdq"
-                            ? "bg-amber-600 text-white border-amber-600 shadow-md"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:bg-amber-50"
-                            }`}
-                    >
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${activeResultTab === "sdq" ? "bg-white/20" : "bg-amber-50 text-amber-600"}`}>
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <div className="text-sm font-bold">ผลประเมิน SDQ</div>
-                            <div className={`text-[11px] mt-0.5 ${activeResultTab === "sdq" ? "text-amber-100" : "text-slate-400"}`}>ประเมินตนเองทางด้านพฤติกรรม</div>
-                        </div>
-                    </button>
                 </div>
             )}
 

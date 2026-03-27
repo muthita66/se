@@ -337,7 +337,7 @@ export function BehaviorFeature({ session }: BehaviorFeatureProps) {
                                         <th className="px-3 py-5 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">เลขที่</th>
                                         <th className="px-3 py-5 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">รหัสประจำตัว</th>
                                         <th className="px-3 py-5 text-sm font-bold text-slate-500 uppercase">ชื่อ-นามสกุล</th>
-                                        <th className="px-3 py-5 text-sm font-bold text-slate-500 uppercase">ระดับชั้น/ห้อง</th>
+                                        <th className="px-3 py-5 text-sm font-bold text-slate-500 uppercase">ระดับชั้น</th>
                                         <th className="px-3 py-5 text-sm font-bold text-slate-500 uppercase whitespace-nowrap text-center">คะแนนความประพฤติ</th>
                                         <th className="px-3 py-5 text-sm font-bold text-slate-500 uppercase whitespace-nowrap text-center">การจัดการ</th>
                                         <th className="px-3 py-5 text-sm font-bold text-slate-500 uppercase whitespace-nowrap text-center">สถานะ</th>
@@ -376,7 +376,7 @@ export function BehaviorFeature({ session }: BehaviorFeatureProps) {
                                                 </td>
                                                 <td className="px-3 py-5">
                                                     <div className="text-sm font-medium text-slate-700 tracking-tight">
-                                                        {s.class_level}/{s.room.includes('/') ? s.room.split('/')[1] : s.room}
+                                                        {s.class_level}
                                                     </div>
                                                 </td>
                                                 <td className="px-3 py-5 text-center">
@@ -634,89 +634,89 @@ export function BehaviorFeature({ session }: BehaviorFeatureProps) {
                                 </button>
                             </div>
 
-                        <div className="flex-1 overflow-y-auto p-8">
-                            {isHistoryLoading ? (
-                                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                    <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                                    <p className="text-slate-400 font-bold animate-pulse">กำลังโหลดประวัติ...</p>
-                                </div>
-                            ) : behaviorHistory.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                                    <History className="w-16 h-16 text-slate-200 mb-4" />
-                                    <p className="text-slate-400 font-black text-xl uppercase tracking-widest">ไม่พบประวัติการบันทึก</p>
-                                    <p className="text-slate-400 font-bold text-sm mt-2">ยังไม่มีการบันทึกพฤติกรรมสำหรับนักเรียนคนนี้</p>
-                                </div>
-                            ) : (
-                                <div className="bg-white border border-slate-100 rounded-[2rem] overflow-x-auto shadow-sm">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-slate-50 border-b border-slate-100">
-                                                <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">วันที่ - เวลา</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">พฤติกรรม</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">คะแนน</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">หมายเหตุ</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">ครูที่กรอก</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">คนที่อนุมัติ</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">สถานะ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {behaviorHistory.map((h) => (
-                                                <tr key={h.id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-base font-normal text-slate-700">
-                                                            {new Date(h.created_at).toLocaleDateString('th-TH', {
-                                                                day: '2-digit', month: 'short', year: '2-digit'
-                                                            })}
-                                                        </div>
-                                                        <div className="text-xs font-normal text-slate-400">
-                                                            {new Date(h.created_at).toLocaleTimeString('th-TH', {
-                                                                hour: '2-digit', minute: '2-digit'
-                                                            })} น.
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-base font-normal text-slate-800">
-                                                            {h.behavior_types?.name}
-                                                        </div>
-                                                        <div className={`text-xs font-medium uppercase ${h.behavior_types?.is_positive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                                            {h.behavior_types?.is_positive ? 'เชิงบวก' : 'เชิงลบ'}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`text-base font-bold ${h.points_awarded > 0 ? 'text-emerald-600' : h.points_awarded < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                                                            {h.points_awarded > 0 ? `+${h.points_awarded}` : h.points_awarded}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-base font-normal text-slate-500" title={h.note}>
-                                                            {h.note || '-'}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-base font-normal text-slate-600">
-                                                            {h.reporter_name || '-'}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-base font-normal text-slate-600">
-                                                            {h.status !== 'PENDING' ? (h.approver_name || '-') : '-'}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {renderStatus(h.status, h.reject_reason)}
-                                                    </td>
+                            <div className="flex-1 overflow-y-auto p-8">
+                                {isHistoryLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                                        <p className="text-slate-400 font-bold animate-pulse">กำลังโหลดประวัติ...</p>
+                                    </div>
+                                ) : behaviorHistory.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                                        <History className="w-16 h-16 text-slate-200 mb-4" />
+                                        <p className="text-slate-400 font-black text-xl uppercase tracking-widest">ไม่พบประวัติการบันทึก</p>
+                                        <p className="text-slate-400 font-bold text-sm mt-2">ยังไม่มีการบันทึกพฤติกรรมสำหรับนักเรียนคนนี้</p>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white border border-slate-100 rounded-[2rem] overflow-x-auto shadow-sm">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50 border-b border-slate-100">
+                                                    <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">วันที่ - เวลา</th>
+                                                    <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">พฤติกรรม</th>
+                                                    <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">คะแนน</th>
+                                                    <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">หมายเหตุ</th>
+                                                    <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">ครูที่กรอก</th>
+                                                    <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">คนที่อนุมัติ</th>
+                                                    <th className="px-6 py-4 text-sm font-bold text-slate-500 uppercase whitespace-nowrap">สถานะ</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {behaviorHistory.map((h) => (
+                                                    <tr key={h.id} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-base font-normal text-slate-700">
+                                                                {new Date(h.created_at).toLocaleDateString('th-TH', {
+                                                                    day: '2-digit', month: 'short', year: '2-digit'
+                                                                })}
+                                                            </div>
+                                                            <div className="text-xs font-normal text-slate-400">
+                                                                {new Date(h.created_at).toLocaleTimeString('th-TH', {
+                                                                    hour: '2-digit', minute: '2-digit'
+                                                                })} น.
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-base font-normal text-slate-800">
+                                                                {h.behavior_types?.name}
+                                                            </div>
+                                                            <div className={`text-xs font-medium uppercase ${h.behavior_types?.is_positive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                                {h.behavior_types?.is_positive ? 'เชิงบวก' : 'เชิงลบ'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`text-base font-bold ${h.points_awarded > 0 ? 'text-emerald-600' : h.points_awarded < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                                                                {h.points_awarded > 0 ? `+${h.points_awarded}` : h.points_awarded}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-base font-normal text-slate-500" title={h.note}>
+                                                                {h.note || '-'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-base font-normal text-slate-600">
+                                                                {h.reporter_name || '-'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-base font-normal text-slate-600">
+                                                                {h.status !== 'PENDING' ? (h.approver_name || '-') : '-'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {renderStatus(h.status, h.reject_reason)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            </Portal>
-        )}
-    </>
-);
+                </Portal>
+            )}
+        </>
+    );
 }

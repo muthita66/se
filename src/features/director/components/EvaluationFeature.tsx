@@ -4,16 +4,12 @@ import { DirectorApiService } from "@/services/director-api.service";
 
 type EvalType = 'student_teaching' | 'student_advisor' | 'teacher_subject' | 'teacher_advisor';
 
-const TYPE_LABELS: Record<EvalType, string> = {
-    student_teaching: "นักเรียนประเมินครูรายวิชา",
-    student_advisor: "นักเรียนประเมินครูที่ปรึกษา",
+const TYPE_LABELS: Record<string, string> = {
     teacher_subject: "ครูประเมินนักเรียนรายวิชา",
     teacher_advisor: "ครูประเมินนักเรียนในที่ปรึกษา",
 };
 
-const TYPE_COL_LABEL: Record<EvalType, string> = {
-    student_teaching: "ครูผู้สอน / รายวิชา",
-    student_advisor: "ครูที่ปรึกษา",
+const TYPE_COL_LABEL: Record<string, string> = {
     teacher_subject: "นักเรียน / รายวิชา",
     teacher_advisor: "นักเรียน / ชั้น-ห้อง",
 };
@@ -27,7 +23,7 @@ export function EvaluationFeature() {
     const [gradeLevels, setGradeLevels] = useState<string[]>([]);
     const [year, setYear] = useState<number>(new Date().getFullYear());
     const [semester, setSemester] = useState<number>(1);
-    const [type, setType] = useState<EvalType>('student_teaching');
+    const [type, setType] = useState<EvalType>('teacher_subject');
     // Filters
     const [subjectId, setSubjectId] = useState<number | ''>('');
     const [departmentId, setDepartmentId] = useState<number | ''>('');
@@ -86,9 +82,11 @@ export function EvaluationFeature() {
     const isSubjectType = type === 'student_teaching' || type === 'teacher_subject';
     const isAdvisorType = type === 'student_advisor' || type === 'teacher_advisor';
 
-    const filteredSubjects = departmentId 
-        ? subjects.filter(s => s.department_id === departmentId)
-        : subjects;
+    const filteredSubjects = subjects.filter((s: any) => {
+        const matchesGroup = !departmentId || s.learning_subject_group_id === departmentId;
+        const matchesLevel = !classLevel || s.level === classLevel;
+        return matchesGroup && matchesLevel;
+    });
 
     return (
         <div className="space-y-6">
@@ -156,53 +154,51 @@ export function EvaluationFeature() {
 
                     {/* Subject filter & Department filter – show only for subject-based types */}
                     {isSubjectType && (
-                        <>
-                            <div className="min-w-[200px]">
-                                <label className="text-xs text-slate-500 block mb-1">กลุ่มสาระการเรียนรู้</label>
-                                <select
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-medium"
-                                    value={departmentId}
-                                    onChange={(e) => setDepartmentId(e.target.value === '' ? '' : Number(e.target.value))}
-                                >
-                                    <option value="">ทั้งหมด</option>
-                                    {departments.map((d: any) => (
-                                        <option key={d.id} value={d.id}>{d.group_name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="min-w-[200px]">
-                                <label className="text-xs text-slate-500 block mb-1">วิชา</label>
-                                <select
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-medium"
-                                    value={subjectId}
-                                    onChange={(e) => setSubjectId(e.target.value === '' ? '' : Number(e.target.value))}
-                                >
-                                    <option value="">ทั้งหมด</option>
-                                    {filteredSubjects.map((s: any) => (
-                                        <option key={s.id} value={s.id}>[{s.code}] {s.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </>
+                        <div className="min-w-[200px]">
+                            <label className="text-xs text-slate-500 block mb-1">กลุ่มสาระการเรียนรู้</label>
+                            <select
+                                className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-medium"
+                                value={departmentId}
+                                onChange={(e) => setDepartmentId(e.target.value === '' ? '' : Number(e.target.value))}
+                            >
+                                <option value="">ทั้งหมด</option>
+                                {departments.map((d: any) => (
+                                    <option key={d.id} value={d.id}>{d.group_name}</option>
+                                ))}
+                            </select>
+                        </div>
                     )}
 
-                    {/* Class Level & Room filter – show only for advisor types */}
-                    {isAdvisorType && (
-                        <>
-                            <div>
-                                <label className="text-xs text-slate-500 block mb-1">ระดับชั้น</label>
-                                <select
-                                    className="px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-medium min-w-[120px]"
-                                    value={classLevel}
-                                    onChange={(e) => setClassLevel(e.target.value)}
-                                >
-                                    <option value="">ทั้งหมด</option>
-                                    {gradeLevels.map((l) => (
-                                        <option key={l} value={l}>{l}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </>
+                    {/* Class Level & Room filter – show for all types now */}
+                    <div>
+                        <label className="text-xs text-slate-500 block mb-1">ระดับชั้น</label>
+                        <select
+                            className="px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-medium min-w-[120px]"
+                            value={classLevel}
+                            onChange={(e) => setClassLevel(e.target.value)}
+                        >
+                            <option value="">ทั้งหมด</option>
+                            {gradeLevels.map((l) => (
+                                <option key={l} value={l}>{l}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Subject Filter - moved after Class Level */}
+                    {isSubjectType && (
+                        <div className="min-w-[200px]">
+                            <label className="text-xs text-slate-500 block mb-1">วิชา</label>
+                            <select
+                                className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-medium"
+                                value={subjectId}
+                                onChange={(e) => setSubjectId(e.target.value === '' ? '' : Number(e.target.value))}
+                            >
+                                <option value="">ทั้งหมด</option>
+                                {filteredSubjects.map((s: any) => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     )}
 
                     <button onClick={load} className="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
@@ -304,4 +300,13 @@ export function EvaluationFeature() {
             </div>
         </div>
     );
+}
+
+// Logic for opening details
+function openDetailsLogic(t: any, year: number, semester: number, type: string, setDetailModal: any, setSelectedRow: any) {
+    setSelectedRow(t);
+    setDetailModal({ open: true, data: null, loading: true });
+    DirectorApiService.getEvaluationDetails(year, semester, type, t.target_id)
+        .then(data => setDetailModal({ open: true, data, loading: false }))
+        .catch(() => setDetailModal({ open: true, data: null, loading: false }));
 }

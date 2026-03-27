@@ -376,13 +376,65 @@ export const DirectorService = {
     async createStudent(data: any) {
         const hash = await bcrypt.hash(data.password || '1234', 10);
 
+        // Resolve IDs from labels if IDs are missing
+        let prefixId = data.prefix_id;
+        if (!prefixId && data.prefix) {
+            const p = await prisma.name_prefixes.findFirst({
+                where: {
+                    OR: [
+                        { prefix_name: { equals: data.prefix, mode: 'insensitive' } },
+                        { prefix_name: { equals: data.prefix.replace('เด็กชาย', 'ด.ช.'), mode: 'insensitive' } },
+                        { prefix_name: { equals: data.prefix.replace('เด็กหญิง', 'ด.ญ.'), mode: 'insensitive' } },
+                        { prefix_name: { equals: data.prefix.replace('นางสาว', 'น.ส.'), mode: 'insensitive' } },
+                        { prefix_name: { contains: data.prefix, mode: 'insensitive' } }
+                    ]
+                }
+            });
+            if (p) prefixId = p.id;
+        }
+
+        let genderId = data.gender_id;
+        if (!genderId && data.gender) {
+            const g = await prisma.genders.findFirst({
+                where: {
+                    OR: [
+                        { name: { equals: data.gender, mode: 'insensitive' } },
+                        { name: { contains: data.gender, mode: 'insensitive' } },
+                        { name: { equals: data.gender === 'ชาย' ? 'Male' : (data.gender === 'หญิง' ? 'Female' : data.gender), mode: 'insensitive' } }
+                    ]
+                }
+            });
+            if (g) genderId = g.id;
+        }
+
+        let statusId = data.status_id;
+        if (!statusId && data.status) {
+            const s = await prisma.student_statuses.findFirst({
+                where: {
+                    OR: [
+                        { status_name: { equals: data.status, mode: 'insensitive' } },
+                        { status_name: { contains: data.status, mode: 'insensitive' } }
+                    ]
+                }
+            });
+            if (s) statusId = s.id;
+        }
+
+        let classroomId = data.classroom_id;
+        if (!classroomId && data.class_level) {
+            const c = await prisma.classrooms.findFirst({
+                where: { room_name: { startsWith: data.class_level.trim() } }
+            });
+            if (c) classroomId = c.id;
+        }
+
         // Create user first
         const user = await prisma.users.create({
             data: {
                 username: data.student_code,
                 email: data.email || `${data.student_code}@school.local`,
                 password_hash: hash,
-                role_id: data.role_id || 1, // Student role
+                role_id: Number(data.role_id) || 1, // Student role
             }
         });
 
@@ -399,17 +451,17 @@ export const DirectorService = {
                 date_of_birth: data.date_of_birth ? new Date(data.date_of_birth) : null,
                 phone: data.phone || null,
                 address: data.address || null,
-                prefix_id: data.prefix_id || null,
-                gender_id: data.gender_id || null,
-                status_id: data.status_id || null,
+                prefix_id: prefixId || null,
+                gender_id: genderId || null,
+                status_id: statusId || null,
             }
         });
 
-        if (data.classroom_id) {
+        if (classroomId) {
             await prisma.classroom_students.create({
                 data: {
                     student_id: student.id,
-                    classroom_id: Number(data.classroom_id),
+                    classroom_id: Number(classroomId),
                     academic_year: data.academic_year || (new Date().getFullYear() + 543)
                 }
             });
@@ -424,47 +476,101 @@ export const DirectorService = {
         if (data.last_name) updateData.last_name = data.last_name;
         if (data.phone !== undefined) updateData.phone = data.phone;
         if (data.address !== undefined) updateData.address = data.address;
-        if (data.classroom_id !== undefined) {
+        if (data.date_of_birth) updateData.date_of_birth = new Date(data.date_of_birth);
+
+        // Resolve labels to IDs
+        if (data.prefix) {
+            const p = await prisma.name_prefixes.findFirst({
+                where: {
+                    OR: [
+                        { prefix_name: { equals: data.prefix, mode: 'insensitive' } },
+                        { prefix_name: { equals: data.prefix.replace('เด็กชาย', 'ด.ช.'), mode: 'insensitive' } },
+                        { prefix_name: { equals: data.prefix.replace('เด็กหญิง', 'ด.ญ.'), mode: 'insensitive' } },
+                        { prefix_name: { equals: data.prefix.replace('นางสาว', 'น.ส.'), mode: 'insensitive' } }
+                    ]
+                }
+            });
+            if (p) updateData.prefix_id = p.id;
+        } else if (data.prefix_id !== undefined) {
+            updateData.prefix_id = Number(data.prefix_id);
+        }
+
+        if (data.gender) {
+            const g = await prisma.genders.findFirst({
+                where: {
+                    OR: [
+                        { name: { equals: data.gender, mode: 'insensitive' } },
+                        { name: { equals: data.gender === 'ชาย' ? 'Male' : (data.gender === 'หญิง' ? 'Female' : data.gender), mode: 'insensitive' } }
+                    ]
+                }
+            });
+            if (g) updateData.gender_id = g.id;
+        } else if (data.gender_id !== undefined) {
+            updateData.gender_id = Number(data.gender_id);
+        }
+
+        if (data.status) {
+            const s = await prisma.student_statuses.findFirst({
+                where: {
+                    OR: [
+                        { status_name: { equals: data.status, mode: 'insensitive' } },
+                        { status_name: { contains: data.status, mode: 'insensitive' } }
+                    ]
+                }
+            });
+            if (s) updateData.status_id = s.id;
+        } else if (data.status_id !== undefined) {
+            updateData.status_id = Number(data.status_id);
+        }
+
+        // Handle Classroom Assignment
+        if (data.classroom_id !== undefined || data.class_level !== undefined) {
             const academicYear = data.academic_year || (new Date().getFullYear() + 543);
-            if (data.classroom_id === null) {
+            let targetClassroomId = data.classroom_id;
+
+            if (!targetClassroomId && data.class_level) {
+                const c = await prisma.classrooms.findFirst({
+                    where: { room_name: { startsWith: data.class_level.trim() } }
+                });
+                if (c) targetClassroomId = c.id;
+            }
+
+            if (targetClassroomId === null) {
                 await prisma.classroom_students.deleteMany({
-                    where: { student_id: id, academic_year: academicYear }
+                    where: { student_id: Number(id), academic_year: academicYear }
                 });
-            } else {
-                const existingMapping = await prisma.classroom_students.findFirst({
-                    where: { student_id: id, academic_year: academicYear }
+            } else if (targetClassroomId) {
+                const existing = await prisma.classroom_students.findFirst({
+                    where: { student_id: Number(id), academic_year: academicYear }
                 });
-                if (existingMapping) {
+
+                if (existing) {
                     await prisma.classroom_students.update({
-                        where: { id: existingMapping.id },
-                        data: { classroom_id: Number(data.classroom_id) }
+                        where: { id: existing.id },
+                        data: { classroom_id: Number(targetClassroomId) }
                     });
                 } else {
                     await prisma.classroom_students.create({
                         data: {
-                            student_id: id,
-                            classroom_id: Number(data.classroom_id),
+                            student_id: Number(id),
+                            classroom_id: Number(targetClassroomId),
                             academic_year: academicYear
                         }
                     });
                 }
             }
         }
-        if (data.prefix_id !== undefined) updateData.prefix_id = data.prefix_id;
-        if (data.gender_id !== undefined) updateData.gender_id = data.gender_id;
-        if (data.status_id !== undefined) updateData.status_id = data.status_id;
-        if (data.date_of_birth) updateData.date_of_birth = new Date(data.date_of_birth);
 
         // Update password on users table if provided
         if (data.password) {
-            const student = await prisma.students.findUnique({ where: { id }, select: { user_id: true } });
+            const student = await prisma.students.findUnique({ where: { id: Number(id) }, select: { user_id: true } });
             if (student?.user_id) {
                 const hash = await bcrypt.hash(data.password, 10);
                 await prisma.users.update({ where: { id: student.user_id }, data: { password_hash: hash } });
             }
         }
 
-        return prisma.students.update({ where: { id }, data: updateData });
+        return prisma.students.update({ where: { id: Number(id) }, data: updateData });
     },
 
     async deleteStudent(id: number) {
@@ -1468,11 +1574,15 @@ export const DirectorService = {
             // target_subject_id = teaching_assignment_id (section), target_teacher_id = null
             let subjectFilter = '';
             let deptFilter = '';
+            let classLevelFilter = '';
             if (filters?.subject_id) {
                 subjectFilter = `AND ta.subject_id = ${Number(filters.subject_id)}`;
             }
             if (filters?.department_id) {
                 deptFilter = `AND s.learning_subject_group_id = ${Number(filters.department_id)}`;
+            }
+            if (filters?.class_level) {
+                classLevelFilter = `AND split_part(cr.room_name, '/', 1) = '${filters.class_level.replace(/'/g, "''")}'`;
             }
 
             const rows: any[] = await prisma.$queryRawUnsafe(`
@@ -1488,6 +1598,7 @@ export const DirectorService = {
                 JOIN teaching_assignments ta ON er.target_subject_id = ta.id
                 JOIN teachers t ON ta.teacher_id = t.id
                 JOIN subjects s ON ta.subject_id = s.id
+                JOIN classrooms cr ON ta.classroom_id = cr.id
                 LEFT JOIN evaluation_answers ea ON ea.response_id = er.id AND ea.score_value IS NOT NULL
                 WHERE er.target_subject_id IS NOT NULL
                   AND er.target_teacher_id IS NULL
@@ -1496,12 +1607,14 @@ export const DirectorService = {
                   ${semWhere}
                   ${subjectFilter}
                   ${deptFilter}
+                  ${classLevelFilter}
                 GROUP BY ta.id, ta.teacher_id, t.first_name, t.last_name, t.teacher_code, s.subject_code, s.subject_name
                 ORDER BY t.first_name, t.last_name, s.subject_code
             `);
 
             return rows.map((r: any) => ({
-                id: `${r.teacher_id}-${r.section_id}`,
+                id: `section-${r.section_id}`,
+                target_id: r.section_id,
                 name: `${r.first_name} ${r.last_name}`,
                 sub_name: `[${r.subject_code}] ${r.subject_name}`,
                 avg_score: r.avg_score ? Number(Number(r.avg_score).toFixed(2)) : 0,
@@ -1546,7 +1659,8 @@ export const DirectorService = {
             `);
 
             return rows.map((r: any) => ({
-                id: r.teacher_id,
+                id: `teacher-${r.teacher_id}`,
+                target_id: r.teacher_id,
                 name: `${r.first_name} ${r.last_name}`,
                 sub_name: `${r.class_level || ''} ${r.room_name || ''}`.trim() || (r.teacher_code ? `[${r.teacher_code}]` : ''),
                 avg_score: r.avg_score ? Number(Number(r.avg_score).toFixed(2)) : 0,
@@ -1559,11 +1673,15 @@ export const DirectorService = {
             // target_student_id = student_id, target_subject_id = section_id
             let subjectFilter = '';
             let deptFilter = '';
+            let classLevelFilter = '';
             if (filters?.subject_id) {
                 subjectFilter = `AND ta.subject_id = ${Number(filters.subject_id)}`;
             }
             if (filters?.department_id) {
                 deptFilter = `AND s.learning_subject_group_id = ${Number(filters.department_id)}`;
+            }
+            if (filters?.class_level) {
+                classLevelFilter = `AND split_part(cr.room_name, '/', 1) = '${filters.class_level.replace(/'/g, "''")}'`;
             }
 
             const rows: any[] = await prisma.$queryRawUnsafe(`
@@ -1576,6 +1694,7 @@ export const DirectorService = {
                 FROM evaluation_responses er
                 JOIN teaching_assignments ta ON er.target_subject_id = ta.id
                 JOIN subjects s ON ta.subject_id = s.id
+                JOIN classrooms cr ON ta.classroom_id = cr.id
                 LEFT JOIN evaluation_answers ea ON ea.response_id = er.id AND ea.score_value IS NOT NULL
                 WHERE er.target_student_id IS NOT NULL
                   AND er.target_subject_id IS NOT NULL
@@ -1584,12 +1703,14 @@ export const DirectorService = {
                   ${semWhere}
                   ${subjectFilter}
                   ${deptFilter}
+                  ${classLevelFilter}
                 GROUP BY ta.id, s.subject_code, s.subject_name
                 ORDER BY s.subject_code
             `);
 
             return rows.map((r: any) => ({
-                id: `section-${r.section_id}`,
+                id: `section-student-${r.section_id}`,
+                target_id: r.section_id,
                 name: `[${r.subject_code}] ${r.subject_name}`,
                 sub_name: '',
                 avg_score: r.avg_score ? Number(Number(r.avg_score).toFixed(2)) : 0,
@@ -1634,6 +1755,7 @@ export const DirectorService = {
 
             return rows.map((r: any) => ({
                 id: `room-${r.classroom_id}`,
+                target_id: r.classroom_id,
                 name: `${r.class_level || ''} ${r.room || ''}`.trim(),
                 sub_name: '',
                 avg_score: r.avg_score ? Number(Number(r.avg_score).toFixed(2)) : 0,
@@ -1643,6 +1765,72 @@ export const DirectorService = {
         }
 
         return [];
+    },
+
+    async getEvaluationDetails(
+        year: number,
+        semester: number,
+        type: 'student_teaching' | 'student_advisor' | 'teacher_subject' | 'teacher_advisor',
+        target_id: number
+    ) {
+        // Resolve semester_id
+        const sem = await prisma.semesters.findFirst({
+            where: { semester_number: semester, academic_years: { year_name: String(year) } },
+            select: { id: true }
+        });
+        const semesterId = sem?.id;
+        if (!semesterId) return { topics: [], comments: [] };
+
+        let whereClause = '';
+        if (type === 'student_teaching') {
+            whereClause = `er.target_subject_id = ${target_id} AND er.target_teacher_id IS NULL AND er.target_student_id IS NULL`;
+        } else if (type === 'student_advisor') {
+            whereClause = `er.target_teacher_id = ${target_id} AND er.target_student_id IS NULL AND er.target_activity_id IS NULL`;
+        } else if (type === 'teacher_subject') {
+            whereClause = `er.target_subject_id = ${target_id} AND er.target_student_id IS NOT NULL AND er.target_teacher_id IS NULL`;
+        } else if (type === 'teacher_advisor') {
+            whereClause = `er.target_student_id IN (SELECT student_id FROM classroom_students WHERE classroom_id = ${target_id}) AND er.target_subject_id IS NULL AND er.target_teacher_id IS NULL`;
+        }
+
+        const [topics, comments] = await Promise.all([
+            // Topic averages
+            prisma.$queryRawUnsafe<any[]>(`
+                SELECT 
+                    eq.question_text as topic,
+                    AVG(ea.score_value::float) as avg_score
+                FROM evaluation_responses er
+                JOIN evaluation_answers ea ON ea.response_id = er.id
+                JOIN evaluation_questions eq ON eq.id = ea.question_id
+                WHERE ${whereClause}
+                  AND er.semester_id = ${semesterId}
+                  AND ea.score_value IS NOT NULL
+                GROUP BY eq.id, eq.question_text
+                ORDER BY MIN(eq.order_number)
+            `),
+            // Individual comments
+            prisma.$queryRawUnsafe<any[]>(`
+                SELECT ea.text_value as comment, er.submitted_at
+                FROM evaluation_responses er
+                JOIN evaluation_answers ea ON ea.id = ea.response_id
+                INNER JOIN evaluation_answers ea2 ON ea2.response_id = er.id
+                WHERE ${whereClause}
+                  AND er.semester_id = ${semesterId}
+                  AND ea2.text_value IS NOT NULL
+                  AND (ea2.question_id IS NULL OR ea2.question_id IN (SELECT id FROM evaluation_questions WHERE question_type_id = 2))
+                ORDER BY er.submitted_at DESC
+            `)
+        ]);
+
+        return {
+            topics: topics.map(t => ({
+                topic: t.topic,
+                avg_score: Number(Number(t.avg_score || 0).toFixed(2))
+            })),
+            comments: (comments as any[]).map(c => ({
+                comment: c.comment,
+                submitted_at: c.submitted_at
+            }))
+        };
     },
 
     async getGradeLevels() {

@@ -371,11 +371,11 @@ export function CurriculumFeature() {
                     <table className="w-full">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">#</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ลำดับ</th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">รหัสวิชา</th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ชื่อวิชา</th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ผู้สอน</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ชั้น/ห้อง</th>
+                                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ระดับชั้น</th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">วัน/เวลา</th>
                                 <th className="px-4 py-3 text-center text-sm font-semibold text-slate-600">จัดการ</th>
                             </tr>
@@ -393,7 +393,7 @@ export function CurriculumFeature() {
                                                 <td className="px-4 py-3 text-sm text-slate-700">{s.subjects?.subject_code || "-"}</td>
                                                 <td className="px-4 py-3 text-sm text-slate-800 font-medium">{s.subjects?.name || s.subjects?.subject_name || "-"}</td>
                                                 <td className="px-4 py-3 text-sm text-slate-600">{s.teachers ? `${s.teachers.first_name} ${s.teachers.last_name}` : "-"}</td>
-                                                <td className="px-4 py-3 text-sm text-slate-600">{classLevel}/{roomLabel}</td>
+                                                <td className="px-4 py-3 text-sm text-slate-600">{classLevel}</td>
                                                 <td className="px-4 py-3 text-sm text-slate-600">{s.day_of_week || "-"} {s.time_range || ""}</td>
                                                 <td className="px-4 py-3 text-center">
                                                     <div className="flex items-center justify-center gap-2">
@@ -414,171 +414,171 @@ export function CurriculumFeature() {
             {isModalOpen && (
                 <Portal>
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/50" onClick={closeModal} />
-                    <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 max-h-[90vh] overflow-hidden">
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                            <h3 className="text-lg font-bold text-slate-800">{isCreateMode ? "เพิ่มหลักสูตร / Section" : "แก้ไขหลักสูตร / Section"}</h3>
-                            <button type="button" onClick={closeModal} className="w-8 h-8 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100">×</button>
-                        </div>
-                        <div className="p-5 overflow-y-auto max-h-[calc(90vh-140px)]">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">กลุ่มสาระการเรียนรู้</span>
-                                    <select
-                                        value={form.subject_group}
-                                        onChange={(e) => setForm((p) => ({ ...p, subject_group: e.target.value, subject_id: "" }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        <option value="">เลือกกลุ่มสาระการเรียนรู้</option>
-                                        {learningSubjectGroups.map((g: any) => (
-                                            <option key={g.id} value={g.group_name}>{g.group_name}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                        <div className="absolute inset-0 bg-slate-900/50" onClick={closeModal} />
+                        <div className="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 max-h-[90vh] overflow-hidden">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                                <h3 className="text-lg font-bold text-slate-800">{isCreateMode ? "เพิ่มหลักสูตร / Section" : "แก้ไขหลักสูตร / Section"}</h3>
+                                <button type="button" onClick={closeModal} className="w-8 h-8 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100">×</button>
+                            </div>
+                            <div className="p-5 overflow-y-auto max-h-[calc(90vh-140px)]">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">กลุ่มสาระการเรียนรู้</span>
+                                        <select
+                                            value={form.subject_group}
+                                            onChange={(e) => setForm((p) => ({ ...p, subject_group: e.target.value, subject_id: "" }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            <option value="">เลือกกลุ่มสาระการเรียนรู้</option>
+                                            {learningSubjectGroups.map((g: any) => (
+                                                <option key={g.id} value={g.group_name}>{g.group_name}</option>
+                                            ))}
+                                        </select>
+                                    </label>
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">รายวิชา</span>
-                                    <select
-                                        value={form.subject_id}
-                                        onChange={(e) => setForm((p) => ({ ...p, subject_id: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        <option value="">เลือกรายวิชา</option>
-                                        {form.subject_id && !subjectOptions.some((s: any) => String(s.id) === form.subject_id) && (
-                                            <option value={form.subject_id}>{`Subject #${form.subject_id}`}</option>
-                                        )}
-                                        {(() => {
-                                            const filteredSubjects = form.subject_group 
-                                                ? subjectOptions.filter((s: any) => (s.subject_group || "ทั่วไป") === form.subject_group)
-                                                : subjectOptions;
-                                            
-                                            const groups = Array.from(new Set(filteredSubjects.map((s: any) => s.subject_group || "ทั่วไป")));
-                                            
-                                            return groups.map(groupName => (
-                                                <optgroup key={groupName} label={String(groupName)}>
-                                                    {filteredSubjects.filter((s: any) => (s.subject_group || "ทั่วไป") === groupName).map((s: any) => (
-                                                        <option key={s.id} value={String(s.id)}>
-                                                            {s.subject_code ? `${s.subject_code} - ` : ""}{s.name || s.subject_name || `Subject #${s.id}`}
-                                                        </option>
-                                                    ))}
-                                                </optgroup>
-                                            ));
-                                        })()}
-                                    </select>
-                                </label>
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">รายวิชา</span>
+                                        <select
+                                            value={form.subject_id}
+                                            onChange={(e) => setForm((p) => ({ ...p, subject_id: e.target.value }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            <option value="">เลือกรายวิชา</option>
+                                            {form.subject_id && !subjectOptions.some((s: any) => String(s.id) === form.subject_id) && (
+                                                <option value={form.subject_id}>{`Subject #${form.subject_id}`}</option>
+                                            )}
+                                            {(() => {
+                                                const filteredSubjects = form.subject_group
+                                                    ? subjectOptions.filter((s: any) => (s.subject_group || "ทั่วไป") === form.subject_group)
+                                                    : subjectOptions;
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">ผู้สอน</span>
-                                    <select
-                                        value={form.teacher_id}
-                                        onChange={(e) => setForm((p) => ({ ...p, teacher_id: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        <option value="">เลือกครูผู้สอน</option>
-                                        {form.teacher_id && !teacherOptions.some((t: any) => String(t.id) === form.teacher_id) && (
-                                            <option value={form.teacher_id}>{`Teacher #${form.teacher_id}`}</option>
-                                        )}
-                                        {teacherOptions.map((t: any) => (
-                                            <option key={t.id} value={String(t.id)}>
-                                                {t.teacher_code ? `${t.teacher_code} - ` : ""}{`${t.first_name || ""} ${t.last_name || ""}`.trim() || `Teacher #${t.id}`}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                                                const groups = Array.from(new Set(filteredSubjects.map((s: any) => s.subject_group || "ทั่วไป")));
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">ชั้น</span>
-                                    <select
-                                        value={form.class_level}
-                                        onChange={(e) => setForm((p) => ({ ...p, class_level: e.target.value, classroom: "" }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        <option value="">เลือกระดับชั้น</option>
-                                        {classLevelOptions.map((lvl) => (
-                                            <option key={lvl} value={lvl}>{lvl}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                                return groups.map(groupName => (
+                                                    <optgroup key={groupName} label={String(groupName)}>
+                                                        {filteredSubjects.filter((s: any) => (s.subject_group || "ทั่วไป") === groupName).map((s: any) => (
+                                                            <option key={s.id} value={String(s.id)}>
+                                                                {s.subject_code ? `${s.subject_code} - ` : ""}{s.name || s.subject_name || `Subject #${s.id}`}
+                                                            </option>
+                                                        ))}
+                                                    </optgroup>
+                                                ));
+                                            })()}
+                                        </select>
+                                    </label>
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">ห้อง</span>
-                                    <select
-                                        value={form.classroom}
-                                        onChange={(e) => setForm((p) => ({ ...p, classroom: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        <option value="">เลือกห้อง</option>
-                                        {roomOptions.map((room) => (
-                                            <option key={room} value={room}>{roomOnlyLabel(room, form.class_level) || room}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">ผู้สอน</span>
+                                        <select
+                                            value={form.teacher_id}
+                                            onChange={(e) => setForm((p) => ({ ...p, teacher_id: e.target.value }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            <option value="">เลือกครูผู้สอน</option>
+                                            {form.teacher_id && !teacherOptions.some((t: any) => String(t.id) === form.teacher_id) && (
+                                                <option value={form.teacher_id}>{`Teacher #${form.teacher_id}`}</option>
+                                            )}
+                                            {teacherOptions.map((t: any) => (
+                                                <option key={t.id} value={String(t.id)}>
+                                                    {t.teacher_code ? `${t.teacher_code} - ` : ""}{`${t.first_name || ""} ${t.last_name || ""}`.trim() || `Teacher #${t.id}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">วัน</span>
-                                    <select
-                                        value={form.day_of_week}
-                                        onChange={(e) => setForm((p) => ({ ...p, day_of_week: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        {dayOptions.map((day) => (
-                                            <option key={day || "empty"} value={day}>{day || "เลือกวัน"}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">ชั้น</span>
+                                        <select
+                                            value={form.class_level}
+                                            onChange={(e) => setForm((p) => ({ ...p, class_level: e.target.value, classroom: "" }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            <option value="">เลือกระดับชั้น</option>
+                                            {classLevelOptions.map((lvl) => (
+                                                <option key={lvl} value={lvl}>{lvl}</option>
+                                            ))}
+                                        </select>
+                                    </label>
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">เวลา</span>
-                                    <select
-                                        value={form.time_range}
-                                        onChange={(e) => setForm((p) => ({ ...p, time_range: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        <option value="">เลือกช่วงเวลา</option>
-                                        {timeOptions.map((t) => (
-                                            <option key={t} value={t}>{t}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">ห้อง</span>
+                                        <select
+                                            value={form.classroom}
+                                            onChange={(e) => setForm((p) => ({ ...p, classroom: e.target.value }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            <option value="">เลือกห้อง</option>
+                                            {roomOptions.map((room) => (
+                                                <option key={room} value={room}>{roomOnlyLabel(room, form.class_level) || room}</option>
+                                            ))}
+                                        </select>
+                                    </label>
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">ปีการศึกษา</span>
-                                    <select
-                                        value={form.year}
-                                        onChange={(e) => setForm((p) => ({ ...p, year: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        {form.year && !yearOptions.includes(form.year) && <option value={form.year}>{form.year}</option>}
-                                        {yearOptions.map((y) => (
-                                            <option key={y} value={y}>{y}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">วัน</span>
+                                        <select
+                                            value={form.day_of_week}
+                                            onChange={(e) => setForm((p) => ({ ...p, day_of_week: e.target.value }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            {dayOptions.map((day) => (
+                                                <option key={day || "empty"} value={day}>{day || "เลือกวัน"}</option>
+                                            ))}
+                                        </select>
+                                    </label>
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">ภาคเรียน</span>
-                                    <select
-                                        value={form.semester}
-                                        onChange={(e) => setForm((p) => ({ ...p, semester: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        {semesterOptions.map((sem) => (
-                                            <option key={sem} value={sem}>{sem}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">เวลา</span>
+                                        <select
+                                            value={form.time_range}
+                                            onChange={(e) => setForm((p) => ({ ...p, time_range: e.target.value }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            <option value="">เลือกช่วงเวลา</option>
+                                            {timeOptions.map((t) => (
+                                                <option key={t} value={t}>{t}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">ปีการศึกษา</span>
+                                        <select
+                                            value={form.year}
+                                            onChange={(e) => setForm((p) => ({ ...p, year: e.target.value }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            {form.year && !yearOptions.includes(form.year) && <option value={form.year}>{form.year}</option>}
+                                            {yearOptions.map((y) => (
+                                                <option key={y} value={y}>{y}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-slate-700">ภาคเรียน</span>
+                                        <select
+                                            value={form.semester}
+                                            onChange={(e) => setForm((p) => ({ ...p, semester: e.target.value }))}
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                                        >
+                                            {semesterOptions.map((sem) => (
+                                                <option key={sem} value={sem}>{sem}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 bg-slate-50">
+                                <button type="button" onClick={closeModal} disabled={saving} className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-60">ยกเลิก</button>
+                                <button type="button" onClick={isCreateMode ? handleSaveCreate : handleSaveEdit} disabled={saving} className="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60">
+                                    {saving ? "กำลังบันทึก..." : (isCreateMode ? "เพิ่ม" : "บันทึก")}
+                                </button>
                             </div>
                         </div>
-                        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 bg-slate-50">
-                            <button type="button" onClick={closeModal} disabled={saving} className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-60">ยกเลิก</button>
-                            <button type="button" onClick={isCreateMode ? handleSaveCreate : handleSaveEdit} disabled={saving} className="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60">
-                                {saving ? "กำลังบันทึก..." : (isCreateMode ? "เพิ่ม" : "บันทึก")}
-                            </button>
-                        </div>
                     </div>
-                </div>
-            </Portal>
-        )}
+                </Portal>
+            )}
         </div>
     );
 }

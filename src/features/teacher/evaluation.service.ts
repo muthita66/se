@@ -45,6 +45,7 @@ export const TeacherEvaluationService = {
     async getTeachingEvaluation(teacher_id: number, year?: number, semester?: number) {
         try {
             console.log(`[getTeachingEvaluation] teacher_id=${teacher_id}, year=${year}, semester=${semester}`);
+            await debugLog(`[getTeachingEvaluation] teacher_id=${teacher_id}, year=${year}, semester=${semester}`);
             const rawAssignments = await prisma.teaching_assignments.findMany({
                 where: {
                     teacher_id,
@@ -71,13 +72,12 @@ export const TeacherEvaluationService = {
             // to prevent empty dropdowns due to year-name formatting mismatches.
             const finalAssignments = assignments.length > 0 ? assignments : rawAssignments;
 
-            console.log(`[getTeachingEvaluation] raw=${rawAssignments.length}, filtered=${assignments.length}, final=${finalAssignments.length}`);
+            await debugLog(`[getTeachingEvaluation] raw=${rawAssignments.length}, filtered=${assignments.length}, final=${finalAssignments.length}`);
 
             // Pre-fetch the teaching evaluation form ID via Raw SQL
             const formResult: any[] = await prisma.$queryRawUnsafe(`
-                SELECT f.id FROM evaluation_forms f
-                JOIN evaluation_categories t ON f.category_id = t.id
-                WHERE t.target_type = 'subject'
+                SELECT id FROM evaluation_forms
+                WHERE form_name LIKE '%รายวิชา%' OR form_name LIKE '%การสอน%'
                 LIMIT 1
             `);
             const teachingFormId = formResult[0]?.id || null;
@@ -96,8 +96,8 @@ export const TeacherEvaluationService = {
                     teaching_assignment_id: ta.id,
                     subject_code: ta.subjects?.subject_code || '',
                     subject_name: ta.subjects?.subject_name || '',
-                    class_level: ta.classrooms?.room_name || '',
-                    room: ta.classrooms?.room_name || '',
+                    class_level: ta.classrooms?.room_name ? ta.classrooms.room_name.split('/')[0] : '',
+                    room: '',
                     year: ta.semesters?.academic_years?.year_name || '',
                     semester: ta.semesters?.semester_number || 0,
                     evaluations_count: count,
@@ -106,6 +106,7 @@ export const TeacherEvaluationService = {
             return results;
         } catch (error: any) {
             console.error("[TeacherEvaluationService] Error in getTeachingEvaluation:", error);
+            await debugLog(`[getTeachingEvaluation] Error: ${error.message} \n ${error.stack}`);
             throw error;
         }
     },
@@ -141,9 +142,8 @@ export const TeacherEvaluationService = {
 
         // Fetch teaching form ID via Raw SQL
         const formResult: any[] = await prisma.$queryRawUnsafe(`
-            SELECT f.id FROM evaluation_forms f
-            JOIN evaluation_categories t ON f.category_id = t.id
-            WHERE t.target_type = 'teaching'
+            SELECT id FROM evaluation_forms
+            WHERE form_name LIKE '%การสอน%'
             LIMIT 1
         `);
         const teachingFormId = formResult[0]?.id || null;
@@ -210,20 +210,28 @@ export const TeacherEvaluationService = {
     },
 
     async getSectionStudentsForEvaluation(teacher_id: number, section_id: number, year: number, semester: number) {
-        // Find students enrolled in this assignment (no status filter - status values may vary)
-        const enrolledStudents = await prisma.enrollments.findMany({
-            where: {
-                teaching_assignment_id: section_id,
-            },
-            include: {
-                students: {
-                    include: {
-                        name_prefixes: true,
-                        classroom_students: { take: 1, orderBy: { academic_year: 'desc' } },
+        const assignment = await prisma.teaching_assignments.findUnique({
+            where: { id: section_id },
+            select: { classroom_id: true }
+        });
+        
+        let students: any[] = [];
+        if (assignment?.classroom_id) {
+            students = await prisma.students.findMany({
+                where: {
+                    classroom_students: {
+                        some: { classroom_id: assignment.classroom_id }
+                    }
+                },
+                include: {
+                    name_prefixes: true,
+                    classroom_students: { 
+                        where: { academic_year: year },
+                        take: 1
                     }
                 }
-            }
-        });
+            });
+        }
 
         const period_id = await resolveEvaluationPeriodId(year, semester);
         const teacher = await prisma.teachers.findUnique({ where: { id: teacher_id }, select: { user_id: true } });
@@ -231,14 +239,12 @@ export const TeacherEvaluationService = {
 
         const results = [];
         const formResult: any[] = await prisma.$queryRawUnsafe(`
-            SELECT f.id FROM evaluation_forms f
-            JOIN evaluation_categories t ON f.category_id = t.id
-            WHERE t.target_type = 'STUDENT' AND t.evaluator_role_id = 2
+            SELECT id FROM evaluation_forms
+            WHERE form_name LIKE '%นักเรียน%' OR form_name LIKE '%ผู้เรียน%'
         `);
         const formIds = formResult.map(f => f.id);
 
-        for (const enrollment of enrolledStudents) {
-            const s = enrollment.students;
+        for (const s of students) {
 
             // Raw SQL because user_id is missing and we need to check if this student was evaluated
             // In teacher evaluates student, target_id IS the student ID
@@ -348,9 +354,8 @@ export const TeacherEvaluationService = {
             // Absolute Fallback: Original general lookup to avoid empty crash
             if (!matchingForm) {
                 const original: any[] = await prisma.$queryRawUnsafe(`
-                    SELECT ef.* FROM evaluation_forms ef
-                    JOIN evaluation_categories eft ON ef.category_id = eft.id
-                    WHERE eft.target_type = 'STUDENT' AND eft.evaluator_role_id = 2
+                    SELECT * FROM evaluation_forms
+                    WHERE form_name LIKE '%นักเรียน%' OR form_name LIKE '%ผู้เรียน%'
                     LIMIT 1
                 `);
                 if (original.length > 0) {
@@ -574,8 +579,7 @@ export const TeacherEvaluationService = {
             SELECT er.id
             FROM public.evaluation_responses er
             INNER JOIN public.evaluation_forms ef ON ef.id = er.form_id
-            LEFT JOIN public.evaluation_categories eft ON eft.id = ef.category_id
-            WHERE (LOWER(COALESCE(eft.target_type, '')) = 'advisor' OR ef.form_name LIKE '%ที่ปรึกษา%')
+            WHERE ef.form_name LIKE '%ที่ปรึกษา%'
               AND er.target_teacher_id = ${Number(teacher_id)}
               ${semesterId ? `AND er.semester_id = ${semesterId}` : ''}
             ORDER BY er.submitted_at DESC NULLS LAST, er.id DESC
@@ -682,11 +686,10 @@ export const TeacherEvaluationService = {
                 sem.semester_number AS semester
             FROM public.evaluation_responses er
             INNER JOIN public.evaluation_forms ef ON ef.id = er.form_id
-            LEFT JOIN public.evaluation_categories eft ON eft.id = ef.category_id
             LEFT JOIN public.evaluation_periods ep ON ep.id = er.period_id
             LEFT JOIN public.semesters sem ON sem.id = ep.semester_id
             LEFT JOIN public.academic_years ay ON ay.id = sem.academic_year_id
-            WHERE LOWER(COALESCE(eft.target_type, '')) = 'advisor'
+            WHERE ef.form_name LIKE '%ที่ปรึกษา%'
               AND er.evaluator_user_id = ${teacherUserId}
               AND er.target_student_id IN (${studentIds.join(',')})
               ${period_id ? `AND er.semester_id = ${Number(period_id)}` : ''}
@@ -775,37 +778,40 @@ export const TeacherEvaluationService = {
     },
 
     async getTeachingStudentEvaluationResults(teacher_id: number, section_id: number, year: number, semester: number) {
-        // 1. Get all students enrolled in this section
-        const enrolledStudents = await prisma.enrollments.findMany({
-            where: {
-                teaching_assignment_id: section_id,
-            },
-            include: {
-                students: {
-                    include: {
-                        name_prefixes: true,
-                        classroom_students: { 
-                            where: { academic_year: year },
-                            take: 1 
-                        },
-                    }
-                }
-            }
+        const assignment = await prisma.teaching_assignments.findUnique({
+            where: { id: section_id },
+            select: { classroom_id: true }
         });
+        
+        let students: any[] = [];
+        if (assignment?.classroom_id) {
+            students = await prisma.students.findMany({
+                where: {
+                    classroom_students: {
+                        some: { classroom_id: assignment.classroom_id }
+                    }
+                },
+                include: {
+                    name_prefixes: true,
+                    classroom_students: { 
+                        where: { academic_year: year },
+                        take: 1 
+                    },
+                }
+            });
+        }
 
         const period_id = await resolveEvaluationPeriodId(year, semester);
 
         // 2. Fetch teaching form ID(s)
         const formResult: any[] = await prisma.$queryRawUnsafe(`
-            SELECT f.id FROM evaluation_forms f
-            JOIN evaluation_categories t ON f.category_id = t.id
-            WHERE t.target_type IN ('subject', 'teaching')
+            SELECT id FROM evaluation_forms
+            WHERE form_name LIKE '%รายวิชา%' OR form_name LIKE '%การสอน%'
         `);
         const formIds = formResult.map(f => f.id);
 
         const results = [];
-        for (const enrollment of enrolledStudents) {
-            const s = enrollment.students;
+        for (const s of students) {
             if (!s) continue;
 
             // Check if this student (as evaluator) has responded for this section
@@ -838,5 +844,9 @@ export const TeacherEvaluationService = {
             if (aNum !== bNum) return aNum - bNum;
             return String(a.student_code || '').localeCompare(String(b.student_code || ''));
         });
+    },
+
+    async getAdvisorStudentEvaluationResults(teacher_id: number, year: number, semester: number) {
+        return TeacherStudentsService.getAdvisoryStudents(teacher_id, year, semester, 'student_results');
     },
 };

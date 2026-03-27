@@ -35,6 +35,12 @@ export function TeachingEvaluationFeature({ session }: TeachingEvaluationFeature
     const [advisoryLoading, setAdvisoryLoading] = useState(false);
     const [advisorySearch, setAdvisorySearch] = useState("");
 
+    // --- Student to Teacher (Results) states ---
+    const [studentEvalMode, setStudentEvalMode] = useState<'subject' | 'advisor'>('subject');
+    const [participationStudents, setParticipationStudents] = useState<any[]>([]);
+    const [participationLoading, setParticipationLoading] = useState(false);
+    const [participationSearch, setParticipationSearch] = useState("");
+
     // Inline advisor attributes evaluation
     const [expandedAdvisorStudentId, setExpandedAdvisorStudentId] = useState<number | null>(null);
     const [advisorEvalTemplate, setAdvisorEvalTemplate] = useState<any>(null);
@@ -93,17 +99,44 @@ export function TeachingEvaluationFeature({ session }: TeachingEvaluationFeature
 
     // Fetch data based on active tab and selected assignment
     useEffect(() => {
-        if (!selectedAssignmentId) return;
-
         const fetchData = async () => {
             setIsLoading(true);
             try {
                 if (activeTab === 'teacher_to_student') {
+                    if (!selectedAssignmentId) {
+                        setStudents([]);
+                        return;
+                    }
                     const data = await TeacherApiService.getSectionStudentsForEvaluation(teacher_id, selectedAssignmentId, year, semester);
                     setStudents(data);
                 } else {
-                    const data = await TeacherApiService.getTeachingEvaluationDetailed(teacher_id, selectedAssignmentId, year, semester);
-                    setEvaluationResults(data);
+                    // Results Mode
+                    if (studentEvalMode === 'subject') {
+                        if (selectedAssignmentId) {
+                            const [results, participation] = await Promise.all([
+                                TeacherApiService.getTeachingEvaluationDetailed(teacher_id, selectedAssignmentId, year, semester),
+                                TeacherApiService.getTeachingStudentEvaluationResults(teacher_id, selectedAssignmentId, year, semester)
+                            ]);
+                            setEvaluationResults(results);
+                            setParticipationStudents(participation);
+                        } else {
+                            setEvaluationResults(null);
+                            setParticipationStudents([]);
+                        }
+                    } else {
+                        // Advisor Results
+                        setParticipationLoading(true);
+                        try {
+                            const [results, participation] = await Promise.all([
+                                TeacherApiService.getAdvisorEvaluation(teacher_id, year, semester),
+                                TeacherApiService.getAdvisorStudentResults(teacher_id, year, semester)
+                            ]);
+                            setEvaluationResults(results);
+                            setParticipationStudents(participation);
+                        } finally {
+                            setParticipationLoading(false);
+                        }
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch evaluation data", err);
@@ -112,7 +145,7 @@ export function TeachingEvaluationFeature({ session }: TeachingEvaluationFeature
             }
         };
         fetchData();
-    }, [activeTab, selectedAssignmentId, year, semester, teacher_id]);
+    }, [activeTab, selectedAssignmentId, year, semester, teacher_id, studentEvalMode]);
 
     const handleOpenEvalModal = async (student: any) => {
         setTargetStudent(student);
@@ -335,7 +368,7 @@ export function TeachingEvaluationFeature({ session }: TeachingEvaluationFeature
                                 <option value="">กรุณาเลือกวิชา</option>
                                 {assignments.map((a) => (
                                     <option key={a.teaching_assignment_id} value={a.teaching_assignment_id}>
-                                        {a.subject_code} - {a.subject_name} ({a.class_level}/{a.room?.split('/').pop()})
+                                        {a.subject_code} - {a.subject_name} ({a.class_level})
                                     </option>
                                 ))}
                             </select>
@@ -463,79 +496,269 @@ export function TeachingEvaluationFeature({ session }: TeachingEvaluationFeature
                             </div>
                         </div>
                     ) : (
-                        <div className="p-8 space-y-10">
-                            {/* Summary Section */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-800 mb-5 flex items-center gap-2">
-                                        <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
-                                        คะแนนเฉลี่ยแยกตามหัวข้อ
-                                    </h2>
-                                    <div className="space-y-4">
-                                        {evaluationResults?.summary?.length > 0 ? evaluationResults.summary.map((item: any, idx: number) => (
-                                            <div key={idx} className="space-y-1.5">
-                                                <div className="flex justify-between text-base font-semibold text-slate-600">
-                                                    <span>{item.topic}</span>
-                                                    <span className="text-emerald-600">{item.average} / 5</span>
-                                                </div>
-                                                <div className="h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                                                    <div
-                                                        className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full transition-all duration-700"
-                                                        style={{ width: `${(item.average / 5) * 100}%` }}
-                                                    ></div>
-                                                </div>
-                                            </div>
-                                        )) : (
-                                            <div className="p-8 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-slate-400 italic">
-                                                ยังไม่มีข้อมูลการประเมิน
-                                            </div>
-                                        )}
-                                    </div>
+                        /* Results View Mode (Student to Teacher) */
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+                            {/* Filter Section */}
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-100 pb-6">
+                                <div className="space-y-1">
+                                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">ผลการประเมินจากนักเรียน</h2>
+                                    <p className="text-slate-500 font-medium">ตรวจสอบการมีส่วนร่วมและผลการประเมินจากนักเรียน</p>
                                 </div>
-
-                                <div className="bg-emerald-50 rounded-3xl p-8 border border-emerald-100 flex flex-col items-center justify-center text-center shadow-inner">
-                                    <div className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3">คะแนนรวมเฉลี่ย</div>
-                                    <div className="text-7xl font-black text-emerald-700 mb-4 tracking-tighter">
-                                        {evaluationResults?.summary?.length > 0
-                                            ? (evaluationResults.summary.reduce((a: any, b: any) => a + b.average, 0) / evaluationResults.summary.length).toFixed(2)
-                                            : '0.00'}
+                                <div className="flex flex-wrap gap-4 items-end">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ปีการศึกษา</label>
+                                        <select
+                                            value={year}
+                                            onChange={(e) => setYear(Number(e.target.value))}
+                                            className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-400 outline-none transition-all font-bold"
+                                        >
+                                            {getRecentAcademicYearsBE(5).map(y => (
+                                                <option key={y} value={y}>{y}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    <div className="flex gap-1.5 mb-5">
-                                        {[1, 2, 3, 4, 5].map(star => (
-                                            <svg key={star} className="w-7 h-7 text-emerald-400 fill-current drop-shadow-sm" viewBox="0 0 24 24">
-                                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                                            </svg>
-                                        ))}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ภาคเรียน</label>
+                                        <select
+                                            value={semester}
+                                            onChange={(e) => setSemester(Number(e.target.value))}
+                                            className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-400 outline-none transition-all font-bold"
+                                        >
+                                            <option value={1}>1</option>
+                                            <option value={2}>2</option>
+                                        </select>
                                     </div>
-                                    <p className="text-slate-500 font-medium">คะแนนเฉลี่ยจากการประเมินของนักเรียนทุกคน</p>
                                 </div>
                             </div>
 
-                            {/* Comments */}
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
-                                    ข้อเสนอแนะเพิ่มเติม
-                                </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {evaluationResults?.comments?.length > 0 ? evaluationResults.comments.map((c: any, idx: number) => (
-                                        <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                                            <p className="text-slate-700 text-base leading-relaxed italic font-medium">&ldquo;{c.text}&rdquo;</p>
-                                            <div className="mt-4 flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-wider">
-                                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                                                เมื่อ {new Date(c.submitted_at).toLocaleDateString('th-TH')}
+                            {/* Mode selection within Results */}
+                            <div className="flex gap-4 border-b border-slate-100">
+                                <button
+                                    onClick={() => setStudentEvalMode('subject')}
+                                    className={`pb-3 px-4 text-sm font-black transition-all border-b-2 ${studentEvalMode === 'subject' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    ประเมินรายวิชา
+                                </button>
+                                <button
+                                    onClick={() => setStudentEvalMode('advisor')}
+                                    className={`pb-3 px-4 text-sm font-black transition-all border-b-2 ${studentEvalMode === 'advisor' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    ประเมินครูที่ปรึกษา
+                                </button>
+                            </div>
+
+                            {studentEvalMode === 'subject' && (
+                                <div className="space-y-4">
+                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">เลือกรายวิชาเพื่อดูผล</label>
+                                    <select
+                                        value={selectedAssignmentId || ""}
+                                        onChange={(e) => setSelectedAssignmentId(Number(e.target.value))}
+                                        className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-400 outline-none transition-all font-bold w-full sm:w-[400px]"
+                                    >
+                                        <option value="">-- เลือกรายวิชา --</option>
+                                        {assignments.map(a => (
+                                            <option key={a.teaching_assignment_id} value={a.teaching_assignment_id}>
+                                                {a.subject_code} - {a.subject_name} ({a.class_level})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {isLoading || (studentEvalMode === 'advisor' && participationLoading) ? (
+                                <div className="flex flex-col items-center justify-center py-20">
+                                    <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
+                                    <p className="font-bold text-slate-500">กำลังโหลดผลประเมิน...</p>
+                                </div>
+                            ) : (studentEvalMode === 'subject' && !selectedAssignmentId) ? (
+                                <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                                    <p className="text-slate-400 font-bold">โปรดเลือกรายวิชาเพื่อดูผลการประเมินและการมีส่วนร่วม</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-10">
+                                    {/* Stats Grid */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
+                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">นักเรียนทั้งหมด</div>
+                                                <div className="text-2xl font-black text-slate-800">{participationStudents.length}</div>
                                             </div>
                                         </div>
-                                    )) : (
-                                        <div className="col-span-full py-10 text-center text-slate-400 italic font-medium">
-                                            ยังไม่มีข้อเสนอแนะในขณะนี้
+                                        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500">
+                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">ประเมินแล้ว</div>
+                                                <div className="text-2xl font-black text-slate-800">{participationStudents.filter(s => s.evaluated).length}</div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500">
+                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] font-black text-rose-500 uppercase tracking-widest">ยังไม่ประเมิน</div>
+                                                <div className="text-2xl font-black text-slate-800">{participationStudents.filter(s => !s.evaluated).length}</div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-emerald-600 p-6 rounded-[2rem] shadow-lg shadow-emerald-200 flex items-center gap-4 text-white">
+                                            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">การมีส่วนร่วม</div>
+                                                <div className="text-2xl font-black">{participationStudents.length > 0 ? ((participationStudents.filter(s => s.evaluated).length / participationStudents.length) * 100).toFixed(0) : 0}%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Participation Table */}
+                                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
+                                        <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                            <h3 className="text-lg font-black text-slate-800 tracking-tight">รายชื่อและความสำเร็จ</h3>
+                                            <div className="relative">
+                                                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                </svg>
+                                                <input
+                                                    type="text"
+                                                    value={participationSearch}
+                                                    onChange={(e) => setParticipationSearch(e.target.value)}
+                                                    placeholder="ระดับชื่อ รหัสประจำตัว..."
+                                                    className="w-full sm:w-64 rounded-xl border border-slate-200 pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400 transition-all font-medium"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-slate-50 border-b border-slate-100">
+                                                    <tr>
+                                                        <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest w-16">เลขที่</th>
+                                                        <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">รหัสประจำตัว</th>
+                                                        <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">ชื่อ-นามสกุล</th>
+                                                        <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">สถานะ</th>
+                                                        <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">วันเวลาที่ประเมิน</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-50 font-medium text-sm">
+                                                    {participationStudents.filter(s =>
+                                                        s.student_code?.includes(participationSearch) ||
+                                                        s.name?.includes(participationSearch)
+                                                    ).map((s) => (
+                                                        <tr key={s.id} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-6 py-4 text-slate-400">{s.roll_number || '-'}</td>
+                                                            <td className="px-6 py-4 text-slate-600">{s.student_code}</td>
+                                                            <td className="px-6 py-4 text-slate-800">{s.name}</td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                {s.evaluated ? (
+                                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black border border-emerald-100">
+                                                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                                                                        ประเมินแล้ว
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-400 rounded-full text-xs font-black">
+                                                                        ยังไม่ประเมิน
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                                                {s.submitted_at ? new Date(s.submitted_at).toLocaleString('th-TH') : '-'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Aggregated Scores Section (Optional but shown if available) */}
+                                    {(evaluationResults?.summary?.length > 0 || evaluationResults?.comments?.length > 0) && (
+                                        <div className="p-10 bg-slate-50 rounded-[3rem] border border-slate-100 space-y-10">
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                                <div>
+                                                    <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                                                        <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
+                                                        คะแนนเฉลี่ยจำแนกตามหัวข้อ
+                                                    </h3>
+                                                    <div className="space-y-6">
+                                                        {evaluationResults.summary.map((item: any, idx: number) => (
+                                                            <div key={idx} className="space-y-2">
+                                                                <div className="flex justify-between items-end font-bold text-slate-700">
+                                                                    <span className="text-sm truncate pr-4">{item.topic}</span>
+                                                                    <span className="text-emerald-600 flex-shrink-0">{item.average.toFixed(2)}</span>
+                                                                </div>
+                                                                <div className="h-2 bg-slate-200/50 rounded-full overflow-hidden border border-slate-100">
+                                                                    <div
+                                                                        className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full transition-all duration-700"
+                                                                        style={{ width: `${(item.average / 5) * 100}%` }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-center justify-center text-center p-8 bg-white rounded-[2.5rem] shadow-xl shadow-emerald-900/5 border border-emerald-50">
+                                                    <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-4">คะแนนรวมเฉลี่ยความพึงพอใจ</div>
+                                                    <div className="text-8xl font-black text-emerald-600 tracking-tighter mb-4 drop-shadow-sm">
+                                                        {(evaluationResults.summary.reduce((a: any, b: any) => a + Number(b.average), 0) / evaluationResults.summary.length).toFixed(2)}
+                                                    </div>
+                                                    <div className="flex gap-1.5 mb-6">
+                                                        {[1, 2, 3, 4, 5].map(star => {
+                                                            const avg = evaluationResults.summary.reduce((a: any, b: any) => a + Number(b.average), 0) / evaluationResults.summary.length;
+                                                            return (
+                                                                <svg key={star} className={`w-6 h-6 ${avg >= star ? 'text-amber-400' : 'text-slate-200'} fill-current`} viewBox="0 0 24 24">
+                                                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                                                </svg>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="px-6 py-2 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase tracking-wider">
+                                                        จาก {participationStudents.filter(s => s.evaluated).length} การตอบกลับ
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Feedback */}
+                                            {evaluationResults.comments?.length > 0 && (
+                                                <div className="space-y-6">
+                                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
+                                                        <div className="w-2 h-6 bg-teal-500 rounded-full"></div>
+                                                        ข้อเสนอแนะล่าสุด
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {evaluationResults.comments.map((c: any, idx: number) => (
+                                                            <div key={idx} className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+                                                                <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-100 group-hover:bg-emerald-400 transition-colors"></div>
+                                                                <p className="text-slate-700 text-sm leading-relaxed italic font-medium">&ldquo;{c.text}&rdquo;</p>
+                                                                <div className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                    </svg>
+                                                                    {new Date(c.submitted_at || c.created_at).toLocaleDateString('th-TH')}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
-                            </div>
+                            )}
                         </div>
-                    )
-                ) : (
+                    )) : (
                     /* Combined Advisor Evaluation Context */
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-6">

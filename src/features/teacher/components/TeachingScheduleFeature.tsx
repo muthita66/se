@@ -39,7 +39,7 @@ export function TeachingScheduleFeature({ session }: { session: any }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
-    const [debugInfo, setDebugInfo] = useState<any>(null);
+
 
     useEffect(() => {
         const load = async () => {
@@ -51,7 +51,7 @@ export function TeachingScheduleFeature({ session }: { session: any }) {
                 console.log('[TeachingSchedule] Data loaded:', json?.data);
                 setSlots(json?.data?.slots || []);
                 setAllPeriods(json?.data?.periods || []);
-                setDebugInfo(json?.data?._debug || null);
+
             } catch (e: any) {
                 setError(e?.message || "โหลดตารางสอนไม่สำเร็จ");
             } finally {
@@ -263,14 +263,7 @@ export function TeachingScheduleFeature({ session }: { session: any }) {
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200">{renderEmpty()}</div>
             ) : viewMode === "list" ? renderListView() : renderGridView()}
 
-            {debugInfo && (
-                <div className="mt-8 p-4 bg-slate-100 rounded-2xl border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">Debug Info</h3>
-                    <pre className="text-[10px] text-slate-400 overflow-auto max-h-40">
-                        {JSON.stringify(debugInfo, null, 2)}
-                    </pre>
-                </div>
-            )}
+
         </div>
     );
 }
