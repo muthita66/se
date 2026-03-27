@@ -28,7 +28,7 @@ export async function GET(request: Request) {
             const gender = searchParams.get('gender');
             
             if (gender) {
-                const criteria = await TeacherFitnessService.getFitnessCriteria(test_name, grade_level, year || undefined, gender);
+                const criteria = await TeacherFitnessService.getFitnessCriteria({ test_name, grade_level, year: year || undefined, gender });
                 return successResponse(criteria);
             } else {
                 const criteria = await TeacherFitnessService.getFitnessCriteriaForClass(test_name, grade_level, year || undefined);
@@ -48,8 +48,19 @@ export async function GET(request: Request) {
         }
 
         if (action === 'dropdown-options') {
-            const data = await TeacherFitnessService.getDropdownOptions();
-            return successResponse(data);
+            const { prisma } = await import('@/lib/prisma');
+            const allCriteria = await prisma.fitness_test_criteria.findMany({
+                select: { test_name: true, unit: true, grade_level: true },
+            });
+            // Distinct test names
+            const testNameMap = new Map<string, string>();
+            allCriteria.forEach((c: any) => { if (!testNameMap.has(c.test_name)) testNameMap.set(c.test_name, c.unit); });
+            const testNames = Array.from(testNameMap.entries()).map(([test_name, unit]) => ({ test_name, unit }));
+            // Distinct grade levels
+            const levelSet = new Set<string>();
+            allCriteria.forEach((c: any) => { if (c.grade_level) levelSet.add(c.grade_level); });
+            const levels = Array.from(levelSet).sort().map((name, i) => ({ id: i + 1, name }));
+            return successResponse({ testNames, levels });
         }
 
         if (action === 'list-all-criteria') {
@@ -57,7 +68,39 @@ export async function GET(request: Request) {
             const grade_level = searchParams.get('class_level') || undefined;
             const year = Number(searchParams.get('year')) || undefined;
             
-            const data = await TeacherFitnessService.getAllCriteria(test_name, grade_level, year);
+            const data = await TeacherFitnessService.getFitnessCriteria({ test_name, grade_level, year });
+            return successResponse(data);
+        }
+
+        if (action === 'daily-health') {
+            const t_id = Number(searchParams.get('teacher_id'));
+            console.log("DEBUG: API action=daily-health", { t_id, year: searchParams.get('year'), sem: searchParams.get('semester'), record_date: searchParams.get('record_date') });
+            if (!t_id || Number.isNaN(t_id)) return errorResponse('teacher_id required', 400);
+            const year = Number(searchParams.get('year'));
+            const sem = Number(searchParams.get('semester'));
+            const record_date = searchParams.get('record_date') || undefined;
+            const student_ids = searchParams.get('student_ids');
+            
+            // Resolve semesterId
+            let semesterId: number | null = null;
+            if (year && sem) {
+                const { prisma } = await import('@/lib/prisma');
+                const semRow = await prisma.semesters.findFirst({
+                    where: {
+                        semester_number: Number(sem),
+                        academic_years: {
+                            year_name: String(year)
+                        }
+                    },
+                    select: { id: true }
+                });
+                if (semRow) semesterId = semRow.id;
+            }
+            
+            if (!semesterId) return successResponse([]);
+            
+            const ids = student_ids ? student_ids.split(',').map(Number).filter(n => !isNaN(n)) : [];
+            const data = await TeacherFitnessService.getDailyHealthRecords(ids, semesterId, record_date);
             return successResponse(data);
         }
 
@@ -75,12 +118,34 @@ export async function POST(request: Request) {
         const { action, ...payload } = body;
 
         if (action === 'upsert-criteria') {
-            const data = await TeacherFitnessService.upsertCriteria(payload);
+            const data = await TeacherFitnessService.upsertFitnessCriteria(payload);
             return successResponse(data);
         }
 
         if (action === 'delete-criteria') {
-            const data = await TeacherFitnessService.deleteCriteria(payload.id);
+            const data = await TeacherFitnessService.deleteFitnessCriteria(payload.id);
+            return successResponse(data);
+        }
+
+        if (action === 'save-daily-health') {
+            // Resolve semester_id from year + semester
+            const { prisma } = await import('@/lib/prisma');
+            const semRow = await prisma.semesters.findFirst({
+                where: {
+                    semester_number: Number(payload.semester),
+                    academic_years: {
+                        year_name: String(payload.year)
+                    }
+                },
+                select: { id: true }
+            });
+            if (!semRow) {
+                return errorResponse('ไม่พบข้อมูลปีการศึกษา/ภาคเรียน', 400);
+            }
+            const data = await TeacherFitnessService.saveDailyHealthRecord({
+                ...payload,
+                semester_id: semRow.id,
+            });
             return successResponse(data);
         }
 

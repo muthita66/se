@@ -232,15 +232,15 @@ export const TeacherScoresService = {
         }
     },
 
-    // Add a new grade category
     async addCategory(
         teaching_assignment_id: number,
         name: string, // Kept for interface compatibility but ignored
-        weight_percent: number,
+        weight_percent: number | string,
         category_type_id?: number
     ) {
         // Use raw query for creation to bypass stale client
-        const weight = Number.isFinite(weight_percent) ? weight_percent : 0;
+        const parsedWeight = Number(weight_percent);
+        const weight = Number.isFinite(parsedWeight) ? parsedWeight : 0;
         
         try {
             await prisma.$executeRaw`
@@ -256,8 +256,9 @@ export const TeacherScoresService = {
     },
 
     // Update a grade category
-    async updateCategory(id: number, name: string, weight_percent: number, category_type_id?: number) {
-        const weight = Number.isFinite(weight_percent) ? weight_percent : 0;
+    async updateCategory(id: number, name: string, weight_percent: number | string, category_type_id?: number) {
+        const parsedWeight = Number(weight_percent);
+        const weight = Number.isFinite(parsedWeight) ? parsedWeight : 0;
 
         try {
             await prisma.$executeRaw`

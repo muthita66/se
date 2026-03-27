@@ -31,6 +31,7 @@ export function FitnessFeature({ session }: { session: any }) {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 
+
     useEffect(() => {
         const fetchData = async () => {
             try {
