@@ -459,7 +459,7 @@ export function BehaviorFeature({ session }: BehaviorFeatureProps) {
                                                         <div className="text-[10px] text-slate-400 font-bold">{student?.student_code}</div>
                                                     </td>
                                                     <td className="px-6 py-5 text-center text-sm font-bold text-slate-700">
-                                                        {classroom?.levels?.name}/{classroom?.room_name.split('/')[1] || classroom?.room_name}
+                                                        {classroom?.room_name ? classroom.room_name.split('/')[0] : '-'}
                                                     </td>
                                                     <td className="px-6 py-5">
                                                         <div className="flex flex-col">

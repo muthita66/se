@@ -1,20 +1,37 @@
 import { prisma } from '@/lib/prisma';
 
-type AttendanceRecordInput = { enrollment_id: number; status: string; remark?: string };
+type AttendanceRecordInput = { enrollment_id: number | null; student_id?: number | null; status: string; remark?: string };
 type UiAttendanceRecordInput = { student_id: number; section_id: number; date: string; status: string; remark?: string };
 
 export const TeacherAttendanceService = {
     async getAttendanceList(teacher_id: number, teaching_assignment_id: number, date: string) {
-        // Get students enrolled in this teaching assignment
-        const enrollments = await prisma.enrollments.findMany({
-            where: { teaching_assignment_id },
-            include: {
-                students: {
-                    include: { name_prefixes: true }
-                }
-            },
-            distinct: ['student_id']
+        // 1. Get the teaching assignment to find classroom_id
+        const assignment = await prisma.teaching_assignments.findUnique({
+            where: { id: teaching_assignment_id },
+            select: { classroom_id: true }
         });
+
+        if (!assignment || !assignment.classroom_id) {
+            return [];
+        }
+
+        // 2. Resolve students from the classroom associated with this assignment
+        // and link them to enrollments if they exist (left join)
+        const students: any[] = await prisma.$queryRaw`
+            SELECT 
+                s.id as student_id,
+                s.student_code,
+                s.first_name,
+                s.last_name,
+                p.prefix_name as prefix,
+                e.id as enrollment_id
+            FROM "classroom_students" cs
+            JOIN "students" s ON cs.student_id = s.id
+            LEFT JOIN "name_prefixes" p ON s.prefix_id = p.id
+            LEFT JOIN "enrollments" e ON (e.student_id = s.id AND e.teaching_assignment_id = ${teaching_assignment_id})
+            WHERE cs.classroom_id = ${assignment.classroom_id}
+            ORDER BY s.student_code ASC
+        `;
 
         // Find or create attendance session for this date
         let session = await prisma.attendance_sessions.findFirst({
@@ -32,22 +49,20 @@ export const TeacherAttendanceService = {
             });
         }
 
-        return enrollments.map(e => {
-            const student = e.students;
-            if (!student) return null;
-            const record = existingRecords.find(r => r.enrollment_id === e.id);
+        return students.map(e => {
+            const record = e.enrollment_id ? existingRecords.find(r => r.enrollment_id === e.enrollment_id) : null;
             return {
-                enrollment_id: e.id,
-                student_id: student.id,
-                student_code: student.student_code,
-                prefix: student.name_prefixes?.prefix_name || '',
-                first_name: student.first_name,
-                last_name: student.last_name,
+                enrollment_id: e.enrollment_id, // Could be null if not yet enrolled
+                student_id: e.student_id,
+                student_code: e.student_code,
+                prefix: e.prefix || '',
+                first_name: e.first_name,
+                last_name: e.last_name,
                 status: record?.status || null,
                 remark: record?.remark || '',
                 record_id: record?.id || null,
             };
-        }).filter(Boolean);
+        });
     },
 
     async saveAttendance(
@@ -78,9 +93,9 @@ export const TeacherAttendanceService = {
             const normalizedRecords: AttendanceRecordInput[] = [];
             uiRecords.forEach((r) => {
                     const enrollment_id = enrollmentMap.get(Number(r.student_id));
-                    if (!enrollment_id) return;
                     normalizedRecords.push({
-                        enrollment_id,
+                        enrollment_id: enrollment_id || null,
+                        student_id: Number(r.student_id),
                         status: String(r.status || 'present'),
                         remark: r.remark,
                     });
@@ -93,14 +108,13 @@ export const TeacherAttendanceService = {
         if (!taId || Number.isNaN(taId)) throw new Error('teaching_assignment_id required');
         if (!date) throw new Error('date required');
         const normalized = Array.isArray(records) ? records : [];
-
-        return this.saveAttendanceByEnrollment(taId, date, normalized);
+        return this.saveAttendanceByEnrollment(taId, date, normalized as any);
     },
 
     async saveAttendanceByEnrollment(
         teaching_assignment_id: number,
         date: string,
-        records: AttendanceRecordInput[]
+        records: { enrollment_id: number | null; student_id?: number | null; status: string; remark: string }[]
     ) {
         // Find or create session
         let session = await prisma.attendance_sessions.findFirst({
@@ -119,12 +133,41 @@ export const TeacherAttendanceService = {
             });
         }
 
+        const sessionId = session.id;
+
         // Upsert records
         for (const rec of records) {
+            let enrollmentId = rec.enrollment_id;
+
+            // If enrollmentId is missing, find or create it
+            if (!enrollmentId && rec.student_id) {
+                const existing = await prisma.enrollments.findFirst({
+                    where: {
+                        student_id: Number(rec.student_id),
+                        teaching_assignment_id,
+                    }
+                });
+
+                if (existing) {
+                    enrollmentId = existing.id;
+                } else {
+                    const created = await prisma.enrollments.create({
+                        data: {
+                            student_id: Number(rec.student_id),
+                            teaching_assignment_id,
+                            status: 'registered'
+                        }
+                    });
+                    enrollmentId = created.id;
+                }
+            }
+
+            if (!enrollmentId) continue;
+
             const existing = await prisma.attendance_records.findFirst({
                 where: {
-                    attendance_session_id: session.id,
-                    enrollment_id: rec.enrollment_id,
+                    attendance_session_id: sessionId,
+                    enrollment_id: enrollmentId,
                 }
             });
 
@@ -136,8 +179,8 @@ export const TeacherAttendanceService = {
             } else {
                 await prisma.attendance_records.create({
                     data: {
-                        attendance_session_id: session.id,
-                        enrollment_id: rec.enrollment_id,
+                        attendance_session_id: sessionId,
+                        enrollment_id: enrollmentId,
                         status: rec.status,
                         remark: rec.remark || null,
                     }

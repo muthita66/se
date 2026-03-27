@@ -11,8 +11,10 @@ export async function GET(request: Request) {
         if (!teacher_id || Number.isNaN(teacher_id)) return errorResponse('teacher_id required', 400);
         if (!section_id || Number.isNaN(section_id)) return errorResponse('section_id required', 400);
 
-        const data = await TeacherAttendanceService.getAttendanceList(teacher_id, section_id, date);
-        return successResponse(data);
+        const data: any = await TeacherAttendanceService.getAttendanceList(teacher_id, section_id, date);
+        return successResponse({
+            students: data,
+        });
     } catch (error: any) {
         return errorResponse('Failed', 500, error.message);
     }

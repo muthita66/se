@@ -117,14 +117,7 @@ export function ProfileFeature({ session }: ProfileFeatureProps) {
 
     const getLevelRoomDisplay = (p: any) => {
         const classLevel = String(p?.class_level || "").trim();
-        const room = String(p?.room || "").trim();
-
-        if (!classLevel && !room) return "-";
-        if (!room) return classLevel || "-";
-        if (!classLevel) return room;
-        if (room === classLevel || room.startsWith(`${classLevel}/`)) return room;
-
-        return `${classLevel}/${room}`;
+        return classLevel || "-";
     };
 
     if (isLoading) {
@@ -177,7 +170,7 @@ export function ProfileFeature({ session }: ProfileFeatureProps) {
                         <div className="text-xl font-bold tracking-tight">{profile.student_code || "-"}</div>
                     </div>
                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 min-w-[120px]">
-                        <div className="text-teal-200 text-xs mb-1">ระดับ/ห้อง</div>
+                        <div className="text-teal-200 text-xs mb-1">ระดับชั้น</div>
                         <div className="text-lg font-bold mt-1 tracking-tight">
                             {getLevelRoomDisplay(profile)}
                         </div>

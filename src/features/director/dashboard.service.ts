@@ -4,7 +4,6 @@ import { Prisma } from '@prisma/client';
 interface DashboardFilters {
     gender?: string;
     class_level?: string;
-    room?: string;
     subject_id?: number;
     learning_group_id?: number;
 }
@@ -13,11 +12,10 @@ export const DirectorDashboardService = {
     // Get filter options
     async getFilterOptions() {
         const genders = await prisma.genders.findMany({ orderBy: { id: 'asc' } });
-        const gradeLevels = await prisma.levels.findMany({ orderBy: { id: 'asc' } });
         const classrooms = await prisma.classrooms.findMany({
-            include: { levels: true },
-            orderBy: [{ grade_level_id: 'asc' }, { room_name: 'asc' }]
+            orderBy: [{ room_name: 'asc' }]
         });
+        const gradeLevels = Array.from(new Set(classrooms.map(c => c.room_name ? c.room_name.split('/')[0] : ''))).filter(Boolean).sort((a, b) => a.localeCompare(b, 'th', { numeric: true })).map((name, index) => ({ id: index + 1, name }));
         const learningGroups = await prisma.learning_subject_groups.findMany({
             orderBy: { id: 'asc' }
         });
@@ -29,9 +27,7 @@ export const DirectorDashboardService = {
                     select: {
                         classrooms: {
                             select: {
-                                levels: {
-                                    select: { name: true }
-                                }
+                                room_name: true,
                             }
                         }
                     }
@@ -40,27 +36,18 @@ export const DirectorDashboardService = {
             orderBy: { subject_code: 'asc' }
         });
 
-        const roomOptions = classrooms.map(c => ({
-            id: c.id,
-            level: c.levels?.name || '',
-            room: c.room_name,
-            name: c.room_name,
-            class_level: c.levels?.name || '',
-        }));
-
         const subjectOptions = subjectsWithLevels.map(s => ({
             id: s.id,
             subject_code: s.subject_code,
             name: s.subject_name,
             learning_subject_group_id: s.learning_subject_group_id,
-            levels: Array.from(new Set(s.teaching_assignments.map(ta => ta.classrooms?.levels?.name).filter(Boolean)))
+            levels: Array.from(new Set(s.teaching_assignments.map(ta => ta.classrooms?.room_name ? ta.classrooms.room_name.split('/')[0] : '').filter(Boolean)))
         }));
 
         return {
             genders: genders.map(g => ({ id: g.id, name: g.name })),
             class_levels: gradeLevels.map((l: any) => ({ id: l.id, name: l.name })),
             classLevels: gradeLevels.map((l: any) => l.name),
-            rooms: roomOptions,
             subjects: subjectOptions,
             learningGroups: learningGroups.map(g => ({ id: g.id, name: g.group_name })),
         };
@@ -68,18 +55,11 @@ export const DirectorDashboardService = {
 
     // Get full dashboard data
     async getFullDashboard(filters?: DashboardFilters) {
-        const { class_level, room } = filters || {};
+        const { class_level } = filters || {};
         // Build common classroom filter
         const classroomWhere: any = {};
         if (filters?.class_level) {
-            classroomWhere.levels = { name: filters.class_level };
-        }
-        if (filters?.room) {
-            if (/^\d+$/.test(filters.room)) {
-                classroomWhere.room_name = { endsWith: `/${filters.room}` };
-            } else {
-                classroomWhere.room_name = filters.room;
-            }
+            classroomWhere.room_name = { startsWith: filters.class_level };
         }
 
         // Build student where clause
@@ -152,9 +132,7 @@ export const DirectorDashboardService = {
                     }
                 }
             }),
-            prisma.classrooms.findMany({
-                include: { levels: true }
-            }),
+            prisma.classrooms.findMany(),
             getGradeSummary(studentWhere, filters?.subject_id),
             getAttendanceSummary(studentWhere),
             getAtRiskStudents(studentWhere, filters?.subject_id),
@@ -196,9 +174,11 @@ export const DirectorDashboardService = {
             const room = (s as any).classroom_students?.[0]?.classrooms;
             if (room) {
                 const roomWithLevels = allClassrooms.find(c => c.id === room.id);
-                if (roomWithLevels?.levels) {
-                    const name = roomWithLevels.levels.name;
-                    classLevelMap.set(name, (classLevelMap.get(name) || 0) + 1);
+                if (roomWithLevels) {
+                    const name = roomWithLevels.room_name ? roomWithLevels.room_name.split('/')[0] : '';
+                    if (name) {
+                        classLevelMap.set(name, (classLevelMap.get(name) || 0) + 1);
+                    }
                 }
             }
         });
@@ -227,7 +207,6 @@ export const DirectorDashboardService = {
 
         const topRooms = topRoomsRaw.map((r: any) => ({
             class_level: r.class_level,
-            room: r.room,
             count: Number(r.count),
             avg_score: Number(r.avg_score || 0),
         }));
@@ -263,141 +242,16 @@ export const DirectorDashboardService = {
             }] : []),
         ];
 
-        const activeYearId = activeYear?.id || 0; // Get from Promise.all result above
+        const activeYearId = activeYear?.id || 0;
 
-        const evalConditions: any[] = [];
-        if (class_level) evalConditions.push(Prisma.sql`l.name = ${class_level}`);
-        if (room) evalConditions.push(Prisma.sql`(c.room_name = ${room} OR c.room_name LIKE ${'%/' + room})`);
-
-        // Refined Join: Check either Evaluator Student or Target Student in the classroom
-        const evalJoins = (class_level || room) ? Prisma.sql`
-            LEFT JOIN users u ON res.evaluator_user_id = u.id
-            LEFT JOIN students evaluator_st ON u.id = evaluator_st.user_id
-            LEFT JOIN students target_st ON res.target_student_id = target_st.id
-            JOIN classroom_students cs ON (cs.student_id = evaluator_st.id OR cs.student_id = target_st.id)
-            JOIN classrooms c ON cs.classroom_id = c.id
-            JOIN levels l ON c.level_id = l.id
-            ${activeYearId ? Prisma.sql`AND cs.academic_year = ${activeYearId}` : Prisma.empty}
-        ` : Prisma.empty;
-
-        const evalWhere = evalConditions.length > 0 
-            ? Prisma.sql`AND ${Prisma.join(evalConditions, ' AND ')}`
-            : Prisma.empty;
-
-        // Calculate evaluation average via Raw SQL
-        const evalCountQuery = Prisma.sql`SELECT COUNT(DISTINCT res.id)::int as count FROM evaluation_responses res ${evalJoins} WHERE 1=1 ${evalWhere}`;
-        const evalCountResult = await prisma.$queryRaw<any[]>(evalCountQuery);
-        const evalResponses = evalCountResult[0]?.count || 0;
-
-        let evalAvg = 0;
-        let evalByCat: any[] = [];
-        let subjectEvalByTopic: any[] = [];
-        let advisorEvalByTopic: any[] = [];
-        let subjectEvalTop: any[] = [];
-        let subjectEvalBottom: any[] = [];
-
-        if (evalResponses > 0) {
-            const avgQuery = Prisma.sql`SELECT AVG(ans.score_value) as avg FROM evaluation_answers ans JOIN evaluation_responses res ON ans.response_id = res.id ${evalJoins} WHERE 1=1 ${evalWhere}`;
-            const avgResult: any[] = await prisma.$queryRaw<any[]>(avgQuery);
-            evalAvg = Number(avgResult[0]?.avg || 0);
-
-            // Fetch Advisor evaluations
-            const advisorEvalQuery = Prisma.sql`
-                SELECT 'ครูที่ปรึกษา' as label, AVG(ans.score_value)::float as value
-                FROM evaluation_answers ans
-                JOIN evaluation_responses res ON ans.response_id = res.id
-                JOIN evaluation_forms form ON res.form_id = form.id
-                JOIN evaluation_categories cat ON form.category_id = cat.id
-                ${evalJoins}
-                WHERE (cat.target_type = 'advisor' OR cat.name LIKE '%ที่ปรึกษา%') ${evalWhere}
-                GROUP BY cat.name
-            `;
-            const advisorEval: any[] = await prisma.$queryRaw<any[]>(advisorEvalQuery);
-
-            // Fetch Subject evaluations grouped by All Learning Areas (using LEFT JOIN)
-            const subjectEvalQuery = Prisma.sql`
-                SELECT lsg.group_name as label, COALESCE(AVG(ans.score_value), 0)::float as value
-                FROM learning_subject_groups lsg
-                LEFT JOIN subjects s ON s.learning_subject_group_id = lsg.id
-                LEFT JOIN evaluation_responses res ON res.target_subject_id = s.id
-                ${evalJoins}
-                LEFT JOIN evaluation_answers ans ON ans.response_id = res.id
-                WHERE 1=1 ${evalWhere}
-                GROUP BY lsg.group_name, lsg.id
-                ORDER BY lsg.id ASC
-            `;
-            const subjectEvalByDept: any[] = await prisma.$queryRaw<any[]>(subjectEvalQuery);
-
-            evalByCat = [...advisorEval, ...subjectEvalByDept];
-
-            const subjEvalByTopicQuery = Prisma.sql`
-                SELECT form.form_name, sec.section_name as topic, AVG(ans.score_value)::float as avg_score
-                FROM evaluation_answers ans
-                JOIN evaluation_questions q ON ans.question_id = q.id
-                JOIN evaluation_sections sec ON q.section_id = sec.id
-                JOIN evaluation_forms form ON sec.form_id = form.id
-                JOIN evaluation_categories cat ON form.category_id = cat.id
-                JOIN evaluation_responses res ON ans.response_id = res.id
-                ${evalJoins}
-                WHERE (cat.target_type = 'subject' OR (cat.target_type != 'advisor' AND cat.name NOT LIKE '%ที่ปรึกษา%')) ${evalWhere}
-                GROUP BY form.form_name, sec.section_name
-                ORDER BY form.form_name, sec.section_name
-            `;
-            subjectEvalByTopic = await prisma.$queryRaw<any[]>(subjEvalByTopicQuery);
-
-            const advEvalByTopicQuery = Prisma.sql`
-                SELECT form.form_name, sec.section_name as topic, AVG(ans.score_value)::float as avg_score
-                FROM evaluation_answers ans
-                JOIN evaluation_questions q ON ans.question_id = q.id
-                JOIN evaluation_sections sec ON q.section_id = sec.id
-                JOIN evaluation_forms form ON sec.form_id = form.id
-                JOIN evaluation_categories cat ON form.category_id = cat.id
-                JOIN evaluation_responses res ON ans.response_id = res.id
-                ${evalJoins}
-                WHERE (cat.target_type = 'advisor' OR form.form_name LIKE '%ที่ปรึกษา%' OR cat.name LIKE '%ที่ปรึกษา%') ${evalWhere}
-                GROUP BY form.form_name, sec.section_name
-                ORDER BY form.form_name, sec.section_name
-            `;
-            advisorEvalByTopic = await prisma.$queryRaw<any[]>(advEvalByTopicQuery);
-
-            const topQuery = Prisma.sql`
-                SELECT np.prefix_name as prefix, t.first_name, t.last_name, d.department_name as department, AVG(ans.score_value)::float as avg_score
-                FROM evaluation_answers ans
-                JOIN evaluation_responses res ON ans.response_id = res.id
-                JOIN teachers t ON res.target_teacher_id = t.id
-                LEFT JOIN name_prefixes np ON t.prefix_id = np.id
-                LEFT JOIN departments d ON t.department_id = d.id
-                ${evalJoins}
-                WHERE 1=1 ${evalWhere}
-                GROUP BY t.id, np.prefix_name, t.first_name, t.last_name, d.department_name
-                ORDER BY avg_score DESC
-                LIMIT 10
-            `;
-            subjectEvalTop = await prisma.$queryRaw<any[]>(topQuery);
-
-            const bottomQuery = Prisma.sql`
-                SELECT np.prefix_name as prefix, t.first_name, t.last_name, d.department_name as department, AVG(ans.score_value)::float as avg_score
-                FROM evaluation_answers ans
-                JOIN evaluation_responses res ON ans.response_id = res.id
-                JOIN teachers t ON res.target_teacher_id = t.id
-                LEFT JOIN name_prefixes np ON t.prefix_id = np.id
-                LEFT JOIN departments d ON t.department_id = d.id
-                ${evalJoins}
-                WHERE 1=1 ${evalWhere}
-                GROUP BY t.id, np.prefix_name, t.first_name, t.last_name, d.department_name
-                ORDER BY avg_score ASC
-                LIMIT 10
-            `;
-            subjectEvalBottom = await prisma.$queryRaw<any[]>(bottomQuery);
-        } else {
-            evalAvg = 4.2; // Sample score for demo if no real responses
-            evalByCat = [
-                { label: 'การจัดการเรียนรู้', value: 4.5 },
-                { label: 'พฤติกรรมและการแต่งกาย', value: 4.2 },
-                { label: 'ความตรงต่อเวลา', value: 3.8 },
-                { label: 'การจัดบรรยากาศชั้นเรียน', value: 4.3 }
-            ];
-        }
+        // Evaluation features have been purged from the system.
+        // Returning empty/mock values for compatibility.
+        const evalAvg = 0;
+        const evalByCat: any[] = [];
+        const subjectEvalByTopic: any[] = [];
+        const advisorEvalByTopic: any[] = [];
+        const subjectEvalTop: any[] = [];
+        const subjectEvalBottom: any[] = [];
 
         // --- Process HR Stats ---
         let teacherMale = 0;
@@ -516,7 +370,6 @@ export const DirectorDashboardService = {
             genderDistribution,
             classDistribution,
             studentsByLevel: classDistribution.map((c: any) => ({ level: c.class_level, count: c.count })),
-            studentsByRoom,
             topRooms,
             gradeSummary,
             grades,
@@ -532,7 +385,6 @@ export const DirectorDashboardService = {
             finance: financeSummary,
             hr: {
                 ratio: studentCount > 0 && teacherCount > 0 ? Math.round((studentCount / teacherCount) * 10) / 10 : 2.5,
-                evalAvg,
                 nearRetirement: nearRetirementList.length,
                 nearRetirementList,
                 byGender,
@@ -541,7 +393,6 @@ export const DirectorDashboardService = {
                 byEmpType,
                 byAcademicRank,
                 ageGroups,
-                evalByCat,
                 avgSections: teacherCount > 0 ? Math.round((subjectCount / teacherCount) * 10) / 10 : 0,
                 advisorStats: [
                     { name: 'มาครบ', count: Math.ceil(teacherCount * 0.9) },
@@ -550,12 +401,6 @@ export const DirectorDashboardService = {
             },
             health: healthSummary,
             curriculum: await getCurriculumSummary(subjectWhere, classroomWhere),
-            evaluation: {
-                subjectEvalByTopic,
-                advisorEvalByTopic,
-                subjectEvalTop,
-                subjectEvalBottom,
-            },
             projects: projectSummary,
             topStudentsByLevel: topStudentsByLevel,
             gradesBySubjectGroup: gradesBySubjectGroup,
@@ -655,7 +500,9 @@ async function getTopRooms(studentWhere: any) {
         const room = s.classroom_students?.[0]?.classrooms;
         if (!room) return;
         
-        const key = `${room.levels?.name || ''}|${room.room_name}`;
+        const key = room.room_name ? room.room_name.split('/')[0] : '';
+        if (!key) return;
+
         if (!roomStats.has(key)) {
             roomStats.set(key, { count: 0, totalGpa: 0, studentCount: new Set() });
         }
@@ -679,10 +526,8 @@ async function getTopRooms(studentWhere: any) {
 
     return Array.from(roomStats.entries())
         .map(([key, stat]) => {
-            const [level, room] = key.split('|');
             return {
-                class_level: level,
-                room: room,
+                class_level: key,
                 count: stat.studentCount.size,
                 avg_score: stat.count > 0 ? stat.totalGpa / stat.count : 0
             };
@@ -842,7 +687,7 @@ async function getAtRiskStudents(studentWhere: any, subjectId?: number) {
                     first_name: student.first_name,
                     last_name: student.last_name,
                     prefix: student.name_prefixes?.prefix_name || '',
-                    class_level: student.classroom_students?.[0]?.classrooms?.levels?.name || '',
+                    class_level: student.classroom_students?.[0]?.classrooms?.room_name || '',
                     room: student.classroom_students?.[0]?.classrooms?.room_name || '',
                     gender: student.genders?.name || '',
                     gpa,
@@ -867,18 +712,17 @@ async function getTopStudentsByLevel(academicYearId?: number) {
                     s.first_name,
                     s.last_name,
                     np.prefix_name as prefix,
-                    l.name as level_name,
-                    l.id as level_id,
+                    c.room_name as level_name,
+                    c.id as level_id,
                     AVG(fg.grade_point)::numeric(3,2) as avg_gpa
                 FROM students s
                 JOIN classroom_students cs ON s.id = cs.student_id
                 JOIN classrooms c ON cs.classroom_id = c.id
-                JOIN levels l ON c.grade_level_id = l.id
                 LEFT JOIN name_prefixes np ON s.prefix_id = np.id
                 JOIN enrollments e ON s.id = e.student_id
                 JOIN final_grades fg ON e.id = fg.enrollment_id
                 WHERE cs.academic_year = ${academicYearId}
-                GROUP BY s.id, s.first_name, s.last_name, np.prefix_name, l.name, l.id
+                GROUP BY s.id, s.first_name, s.last_name, np.prefix_name, c.room_name, c.id
             ),
             RankedStudents AS (
                 SELECT 
@@ -1015,8 +859,7 @@ async function getGradesBySubjectGroup(studentWhere: any, learningGroupId?: numb
 async function getStudentsByRoom(studentWhere: any) {
     const [classrooms, studentCountsRaw] = await Promise.all([
         prisma.classrooms.findMany({
-            include: { levels: true },
-            orderBy: [{ grade_level_id: 'asc' }, { room_name: 'asc' }],
+            orderBy: [{ room_name: 'asc' }],
         }),
         (prisma as any).classroom_students.groupBy({
             by: ['classroom_id'],
@@ -1031,8 +874,7 @@ async function getStudentsByRoom(studentWhere: any) {
 
     return classrooms
         .map(c => ({
-            level: c.levels?.name || '',
-            room: c.room_name,
+            level: c.room_name ? c.room_name.split('/')[0] : '',
             count: countMap.get(c.id) || 0
         }))
         .filter(r => r.count > 0);
@@ -1291,14 +1133,14 @@ async function getHealthSummary(studentWhere: any, year?: string, semester?: num
     // 2.5 Fetch classroom labels for level-based BMI aggregation
     const studentRooms = await (prisma as any).classroom_students.findMany({
         where: { student_id: { in: studentIds } },
-        include: { classrooms: { include: { levels: true } } },
+        include: { classrooms: true },
         orderBy: { academic_year: 'desc' }
     });
     
     const studentToLevel = new Map<number, string>();
     studentRooms.forEach((sr: any) => {
         if (!studentToLevel.has(sr.student_id)) {
-            studentToLevel.set(sr.student_id, sr.classrooms?.levels?.name || 'ไม่ระบุ');
+            studentToLevel.set(sr.student_id, sr.classrooms?.room_name || 'ไม่ระบุ');
         }
     });
 
@@ -1435,7 +1277,7 @@ async function getHealthSummary(studentWhere: any, year?: string, semester?: num
         include: {
             name_prefixes: true,
             classroom_students: {
-                include: { classrooms: { include: { levels: true } } },
+                include: { classrooms: true },
                 orderBy: { academic_year: 'desc' },
                 take: 1
             },
@@ -1454,7 +1296,7 @@ async function getHealthSummary(studentWhere: any, year?: string, semester?: num
             prefix: s.name_prefixes?.prefix_name || '',
             firstName: s.first_name,
             lastName: s.last_name,
-            classLevel: s.classroom_students?.[0]?.classrooms?.levels?.name || '',
+            classLevel: s.classroom_students?.[0]?.classrooms?.room_name || '',
             room: s.classroom_students?.[0]?.classrooms?.room_name || '',
             issues
         };
@@ -1515,7 +1357,6 @@ async function getRoomRankingsBySubject(studentWhere: any, learningGroupId?: num
                                             select: {
                                                 id: true,
                                                 room_name: true,
-                                                levels: { select: { name: true } }
                                             }
                                         }
                                     }
@@ -1540,7 +1381,7 @@ async function getRoomRankingsBySubject(studentWhere: any, learningGroupId?: num
             const cId = cs.classrooms.id;
             const current = roomMap.get(cId) || {
                 roomName: cs.classrooms.room_name,
-                levelName: cs.classrooms.levels?.name || '',
+                levelName: cs.classrooms.room_name || '',
                 points: []
             };
             current.points.push(gp);
@@ -1555,8 +1396,8 @@ async function getRoomRankingsBySubject(studentWhere: any, learningGroupId?: num
             return {
                 classroom_id: id,
                 level_name: data.levelName,
-                room_name: data.roomName?.includes('/') ? data.roomName : `${data.levelName}/${data.roomName}`,
-                display_name: data.roomName?.includes('/') ? data.roomName : `${data.levelName}/${data.roomName}`,
+                room_name: data.roomName,
+                display_name: data.roomName,
                 avg_gpa,
                 student_count: data.points.length
             };

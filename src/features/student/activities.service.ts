@@ -29,12 +29,7 @@ export const ActivitiesService = {
         let eventTargets: any[] = [];
         
         if (eventIds.length > 0) {
-            participantCounts = await prisma.$queryRawUnsafe(`
-                SELECT event_id, COUNT(*)::int as count 
-                FROM event_participants 
-                WHERE event_id IN (${eventIds.join(',')})
-                GROUP BY event_id
-            `);
+            participantCounts = [];
 
             eventTargets = await prisma.$queryRawUnsafe(`
                 SELECT et.*, tt.display_name as target_type_display
@@ -92,13 +87,7 @@ export const ActivitiesService = {
         if (!student) return [];
 
         // Raw SQL to avoid joins with outdated models
-        const participations: any[] = await prisma.$queryRawUnsafe(`
-            SELECT ep.*, e.id as event_id, e.title, e.start_datetime, e.end_datetime, e.location, e.description
-            FROM event_participants ep
-            JOIN events e ON ep.event_id = e.id
-            WHERE ep.user_id = $1
-            ORDER BY ep.registered_at DESC
-        `, student.user_id);
+        const participations: any[] = [];
 
         return participations.map(p => ({
             id: p.event_id,

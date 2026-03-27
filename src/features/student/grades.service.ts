@@ -71,21 +71,23 @@ export const GradesService = {
         });
 
         const uniqueSubjects = new Map<string, GradeRow>();
+        const activeYear = year || Number((await prisma.academic_years.findFirst({ where: { is_active: true } }))?.year_name || 2568);
+        const activeSemesterNum = semester || Number((await prisma.semesters.findFirst({ where: { is_active: true } }))?.semester_number || 1);
+
+        const scheduledRows = await this.getScheduledSubjectRows(student_id, activeYear, activeSemesterNum);
+        scheduledRows.forEach((row) => {
+            uniqueSubjects.set(row.subject_code, row);
+        });
 
         enrollments.forEach((enrollment: any) => {
             const row = buildEnrollmentGradeRow(enrollment);
             if (!row) return;
-            uniqueSubjects.set(row.subject_code, row);
-        });
-
-        if (year && semester) {
-            const scheduledRows = await this.getScheduledSubjectRows(student_id, year, semester);
-            scheduledRows.forEach((row) => {
-                if (!uniqueSubjects.has(row.subject_code)) {
-                    uniqueSubjects.set(row.subject_code, row);
-                }
+            // Overlay enrollment data (grades/scores) on top of the generic classroom subject row
+            uniqueSubjects.set(row.subject_code, {
+                ...(uniqueSubjects.get(row.subject_code) || {}),
+                ...row
             });
-        }
+        });
 
         return Array.from(uniqueSubjects.values()).sort((a, b) => {
             const orderA = getCategoryRank(a.category);

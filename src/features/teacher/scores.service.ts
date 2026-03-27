@@ -8,7 +8,7 @@ export const TeacherScoresService = {
             include: {
                 subjects: true,
                 teachers: { include: { name_prefixes: true } },
-                classrooms: { include: { levels: true } },
+                classrooms: true,
                 semesters: { include: { academic_years: true } },
                 class_schedules: {
                     include: {
@@ -62,7 +62,7 @@ export const TeacherScoresService = {
                 subject_code: ta.subjects?.subject_code || '',
                 subject_name: ta.subjects?.subject_name || '',
                 credit: ta.subjects?.credit ? Number(ta.subjects.credit) : 0,
-                class_level: ta.classrooms?.levels?.name || '',
+                class_level: ta.classrooms?.room_name || '',
                 classroom: ta.classrooms?.room_name || '',
                 room: ta.classrooms?.room_name || '',
                 year: ay?.year_name || '',
@@ -123,7 +123,7 @@ export const TeacherScoresService = {
                 WHERE ai.grade_category_id = ANY($1::int[])
                 GROUP BY ai.id, ai.grade_category_id, ai.name, ai.max_score, ai.created_at
                 ORDER BY ai.id ASC
-            `, categoryIds)
+            `, categoryIds) as any[]
             : [];
 
         // Fetch types manually since Prisma Client might be stale
@@ -132,7 +132,7 @@ export const TeacherScoresService = {
 
         // Map items back to categories for flattening
         const catMap = new Map(categories.map(c => [c.id, { ...c, assessment_items: [] }]));
-        assessmentItems.forEach(item => {
+        assessmentItems.forEach((item: any) => {
             const cat = catMap.get(item.grade_category_id);
             if (cat) cat.assessment_items.push(item);
         });
@@ -418,37 +418,49 @@ export const TeacherScoresService = {
 
     // Get students enrolled in a teaching assignment
     async getStudents(teaching_assignment_id: number) {
-        const enrollments = await prisma.enrollments.findMany({
-            where: { teaching_assignment_id },
-            include: {
-                students: {
-                    include: {
-                        name_prefixes: true,
-                        classroom_students: { take: 1, orderBy: { academic_year: 'desc' } },
-                    }
-                }
-            },
-            distinct: ['student_id']
+        // Find the classroom associated with this teaching assignment
+        const assignment = await prisma.teaching_assignments.findUnique({
+            where: { id: teaching_assignment_id },
+            select: { classroom_id: true }
         });
 
-        const mapped = enrollments
-            .map(e => {
-                const s = e.students;
-                if (!s) return null;
-                const cs = (s as any).classroom_students?.[0];
-                return {
-                    id: s.id,
-                    enrollment_id: e.id,
-                    student_code: s.student_code,
-                    prefix: s.name_prefixes?.prefix_name || '',
-                    first_name: s.first_name,
-                    last_name: s.last_name,
-                    roll_number: cs?.roll_number,
-                };
-            })
-            .filter(Boolean);
+        if (!assignment?.classroom_id) return [];
 
-        return (mapped as any[]).sort((a, b) => {
+        // Fetch students from the corresponding classroom
+        const students = await prisma.students.findMany({
+            where: {
+                classroom_students: {
+                    some: { classroom_id: assignment.classroom_id }
+                }
+            },
+            include: {
+                name_prefixes: true,
+                classroom_students: {
+                    where: { classroom_id: assignment.classroom_id },
+                    take: 1
+                },
+                enrollments: {
+                    where: { teaching_assignment_id },
+                    take: 1
+                }
+            }
+        });
+
+        const mapped = students.map(s => {
+            const cs = s.classroom_students?.[0];
+            const enrollment = s.enrollments?.[0];
+            return {
+                id: s.id,
+                enrollment_id: enrollment?.id || null,
+                student_code: s.student_code,
+                prefix: s.name_prefixes?.prefix_name || '',
+                first_name: s.first_name,
+                last_name: s.last_name,
+                roll_number: cs?.roll_number,
+            };
+        });
+
+        return mapped.sort((a, b) => {
             const aNum = a.roll_number != null ? Number(a.roll_number) : 999999;
             const bNum = b.roll_number != null ? Number(b.roll_number) : 999999;
             if (aNum !== bNum) return aNum - bNum;
@@ -535,9 +547,26 @@ export const TeacherScoresService = {
         }
 
         for (const sc of scores || []) {
-            const enrollment_id =
+            let enrollment_id =
                 (sc.enrollment_id && Number(sc.enrollment_id)) ||
                 (sc.student_id ? enrollmentMap.get(Number(sc.student_id)) : undefined);
+
+            // If enrollment doesn't exist, create it on the fly
+            if (!enrollment_id && sc.student_id && teaching_assignment_id) {
+                try {
+                    const newEnrollment = await prisma.enrollments.create({
+                        data: {
+                            teaching_assignment_id,
+                            student_id: Number(sc.student_id),
+                            status: 'enrolled'
+                        }
+                    });
+                    enrollment_id = newEnrollment.id;
+                    enrollmentMap.set(Number(sc.student_id), enrollment_id);
+                } catch (e) {
+                    console.error(`Failed to create enrollment for student ${sc.student_id}:`, e);
+                }
+            }
 
             if (!enrollment_id) continue;
 

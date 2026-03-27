@@ -93,7 +93,6 @@ export function formatTargetValue(
  */
 export function getTargetTypeLabel(targetType: string): string {
     const labels: Record<string, string> = {
-        classroom: 'ห้อง',
         program: 'โปรแกรม',
         level: 'ชั้น',
         department: 'แผนก',

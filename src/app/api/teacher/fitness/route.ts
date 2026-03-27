@@ -39,7 +39,6 @@ export async function GET(request: Request) {
         if (action === 'students') {
             if (!teacher_id || Number.isNaN(teacher_id)) return errorResponse('teacher_id required', 400);
             if (!class_level) return errorResponse('class_level required', 400);
-            if (!room) return errorResponse('room required', 400);
 
             const year = Number(searchParams.get('year')) || undefined;
             const semester = Number(searchParams.get('semester')) || undefined;

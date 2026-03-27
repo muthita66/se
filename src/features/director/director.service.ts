@@ -10,21 +10,12 @@ function formatTimePart(value: Date | null | undefined) {
     return `${hh}:${mm}`;
 }
 
-function roomOnlyLabel(classLevel: string, roomName: string) {
-    const level = String(classLevel || '').trim();
-    const room = String(roomName || '').trim();
-    if (!room) return '';
-    if (level && room.startsWith(`${level}/`)) return room.slice(level.length + 1).trim();
-    const slash = room.lastIndexOf('/');
-    return slash >= 0 ? room.slice(slash + 1).trim() : room;
+function levelFromRoomName(roomName: string): string {
+    if (!roomName) return '';
+    // Format: "ม.1/1" -> "ม.1", "Primary 1/1" -> "Primary 1"
+    return roomName.split('/')[0] || roomName;
 }
 
-function levelFromRoomName(roomName: string) {
-    const room = String(roomName || '').trim();
-    if (!room) return '';
-    const slash = room.indexOf('/');
-    return slash >= 0 ? room.slice(0, slash).trim() : room;
-}
 
 async function resolveAdvisorTerm(year?: number, semester?: number) {
     const normalizedYear = Number(year);
@@ -55,13 +46,12 @@ function mapAdvisorRecord(
     term: { year: number; semester: number }
 ) {
     const fullRoomName = String(row.classrooms?.room_name || '');
-    const classLevel = levelFromRoomName(fullRoomName);
+    const classLevel = fullRoomName.split('/')[0] || fullRoomName;
     return {
         id: row.id,
         teacher_id: row.teacher_id,
         classroom_id: row.classroom_id,
         class_level: classLevel,
-        room: roomOnlyLabel(classLevel, fullRoomName),
         year: term.year,
         semester: term.semester,
         teachers: row.teachers || null,
@@ -108,24 +98,19 @@ async function resolveClassroomIdFromPayload(data: any) {
     }
 
     const classLevel = String(data?.class_level || '').trim();
-    const classroomName = String(data?.classroom || '').trim();
-    if (!classLevel && !classroomName) return null;
-    if (!classLevel || !classroomName) return null;
+    if (!classLevel) return null;
 
     const classrooms = await prisma.classrooms.findMany({
         orderBy: { room_name: 'asc' },
     });
 
     const classroom = classrooms.find((c) => {
-        const levelName = levelFromRoomName(String(c.room_name || ''));
-        const fullRoomName = String(c.room_name || '');
-        const shortRoomName = roomOnlyLabel(levelName, fullRoomName);
-        if (classLevel && levelName !== classLevel) return false;
-        return fullRoomName === classroomName || shortRoomName === classroomName;
-    }) || classrooms.find((c) => String(c.room_name || '') === classroomName);
+        const levelName = String(c.room_name || '').split('/')[0] || String(c.room_name || '');
+        return classLevel === levelName;
+    }) || classrooms.find((c) => String(c.room_name || '').startsWith(classLevel));
 
     if (!classroom) {
-        throw new Error(`ไม่พบห้องเรียน ${classLevel}/${classroomName}`);
+        throw new Error(`ไม่พบชั้น ${classLevel}`);
     }
 
     return classroom.id;
@@ -244,9 +229,7 @@ export const DirectorService = {
         return rows.map(r => {
             const advisor = r.classroom_advisors?.[0];
             const fullRoomName = advisor?.classrooms?.room_name || '';
-            const classLevel = levelFromRoomName(fullRoomName);
-            const room = roomOnlyLabel(classLevel, fullRoomName);
-            const classRoom = room || advisor?.classrooms?.room_name || '';
+            const classLevel = fullRoomName.split('/')[0] || fullRoomName;
 
             return {
                 ...r,
@@ -255,9 +238,8 @@ export const DirectorService = {
                 learning_subject_group_id: r.learning_subject_group_id,
                 department: r.learning_subject_groups?.group_name || '',
                 position: r.teacher_positions?.title || '',
-                advisor_class: classRoom,
+                advisor_class: classLevel || '-',
                 advisor_level: classLevel,
-                advisor_room: room
             };
         });
     },
@@ -326,7 +308,7 @@ export const DirectorService = {
     },
 
     // --- Students CRUD ---
-    async getStudents(filters?: { search?: string; class_level?: string; room?: string }) {
+    async getStudents(filters?: { search?: string; class_level?: string }) {
         const where: any = {};
         if (filters?.search) {
             const s = filters.search.trim();
@@ -346,11 +328,10 @@ export const DirectorService = {
                 ];
             }
         }
-        if (filters?.class_level || filters?.room) {
+        if (filters?.class_level) {
             where.classroom_students = { some: { classrooms: {} } };
-            if (filters.room) {
-                where.classroom_students.some.classrooms.room_name = { contains: filters.room.trim(), mode: 'insensitive' };
-            }
+            // filtering startsWith via class_level in classroom_students 
+            where.classroom_students.some.classrooms.room_name = { startsWith: filters.class_level.trim() };
         }
         const rows = await (prisma.students as any).findMany({
             where,
@@ -369,14 +350,12 @@ export const DirectorService = {
         const mapped = (rows as any[]).map(r => {
             const cs = r.classroom_students?.[0];
             const currentClassroom = cs?.classrooms;
-            const classLevel = levelFromRoomName(currentClassroom?.room_name || '');
-            const roomName = currentClassroom?.room_name || '';
+            const classLevel = currentClassroom?.room_name ? currentClassroom.room_name.split('/')[0] : '';
 
             return {
                 ...r,
                 prefix: r.name_prefixes?.prefix_name || '',
                 class_level: classLevel.trim(),
-                room: roomOnlyLabel(classLevel, roomName),
                 gender: r.genders?.name || '',
                 status: r.student_statuses?.status_name || '',
                 roll_number: cs?.roll_number,
@@ -513,21 +492,18 @@ export const DirectorService = {
             }
         });
 
-        // Group by class_level + room
-        const counts = new Map<string, { class_level: string; room: string; total: number; male: number; female: number }>();
+        // Group by class_level
+        const counts = new Map<string, { class_level: string; total: number; male: number; female: number }>();
         (students as any[]).forEach(s => {
             const currentClassroom = s.classroom_students?.[0]?.classrooms;
-            const level = (levelFromRoomName(currentClassroom?.room_name || '') || 'ไม่ระบุ').trim();
-            const room = roomOnlyLabel(
-                levelFromRoomName(currentClassroom?.room_name || ''),
-                currentClassroom?.room_name || ''
-            ) || 'ไม่ระบุ';
+            const fullRoomName = currentClassroom?.room_name || '';
+            const level = fullRoomName ? (fullRoomName.split('/')[0] || 'ไม่ระบุ') : 'ไม่ระบุ';
 
             const isMale = maleGender && s.gender_id === maleGender.id;
             const isFemale = femaleGender && s.gender_id === femaleGender.id;
 
-            const key = `${level}-${room}`;
-            const existing = counts.get(key) || { class_level: level, room, total: 0, male: 0, female: 0 };
+            const key = level;
+            const existing = counts.get(key) || { class_level: level, total: 0, male: 0, female: 0 };
             existing.total++;
             if (isMale) existing.male++;
             if (isFemale) existing.female++;
@@ -535,8 +511,7 @@ export const DirectorService = {
         });
 
         return Array.from(counts.values()).sort((a, b) => {
-            if (a.class_level !== b.class_level) return a.class_level.localeCompare(b.class_level);
-            return a.room.localeCompare(b.room);
+            return a.class_level.localeCompare(b.class_level);
         });
     },
 
@@ -642,7 +617,7 @@ export const DirectorService = {
             name: r.subject_name,
             subject_type: r.subject_categories?.category_name || '',
             subject_group: r.learning_subject_groups?.group_name || '',
-            level: (r as any).level || levelFromRoomName((r.teaching_assignments?.[0]?.classrooms as any)?.room_name || '') || deriveLevelFromCode(r.subject_code),
+            level: (r as any).level || (r.teaching_assignments?.[0]?.classrooms as any)?.room_name?.split('/')[0] || deriveLevelFromCode(r.subject_code),
         }));
     },
 
@@ -749,8 +724,6 @@ export const DirectorService = {
                 teacher_id,
                 semester_id,
                 classroom_id,
-                capacity: data.capacity || null,
-                status: data.status || 'open',
             }
         });
 
@@ -784,8 +757,6 @@ export const DirectorService = {
         ) {
             updateData.semester_id = await resolveSemesterIdFromPayload(data);
         }
-        if (data.capacity !== undefined) updateData.capacity = data.capacity;
-        if (data.status) updateData.status = data.status;
 
         const updated = await prisma.teaching_assignments.update({ where: { id }, data: updateData });
         await upsertSingleClassSchedule(id, data);
@@ -814,20 +785,13 @@ export const DirectorService = {
     },
 
     // --- Advisors (use classroom_advisors + classrooms/levels) ---
-    async getAdvisors(filters?: { year?: number; semester?: number; class_level?: string; room?: string }) {
+    async getAdvisors(filters?: { year?: number; semester?: number; class_level?: string }) {
         const term = await resolveAdvisorTerm(filters?.year, filters?.semester);
         const where: any = {};
         
-        if (filters?.class_level || filters?.room) {
+        if (filters?.class_level) {
             where.classrooms = {};
-            if (filters.class_level) {
-                // Filter by class level after mapping because schema no longer exposes classrooms.levels
-            }
-            if (filters.room) {
-                const r = filters.room.trim();
-                // Ensure room '1' doesn't match 'ม.1/2' by checking for slash or exact match
-                where.classrooms.room_name = { contains: r, mode: 'insensitive' };
-            }
+            // Filter by class level after mapping because schema no longer exposes classrooms.levels
         }
 
         const rows = await prisma.classroom_advisors.findMany({
@@ -845,14 +809,11 @@ export const DirectorService = {
             .map((row) => mapAdvisorRecord(row, term))
             .filter((row) => {
                 const classLevelFilter = String(filters?.class_level || '').trim().toLowerCase();
-                const roomFilter = String(filters?.room || '').trim().toLowerCase();
                 const matchesClassLevel = !classLevelFilter || String(row.class_level || '').toLowerCase().includes(classLevelFilter);
-                const matchesRoom = !roomFilter || String(row.room || '').toLowerCase() === roomFilter || String(row.room || '').toLowerCase().includes(roomFilter);
-                return matchesClassLevel && matchesRoom;
+                return matchesClassLevel;
             })
             .sort((a, b) =>
                 String(a.class_level || '').localeCompare(String(b.class_level || ''), 'th')
-                || String(a.room || '').localeCompare(String(b.room || ''), 'th')
                 || Number(a.id) - Number(b.id)
             );
     },
@@ -860,7 +821,6 @@ export const DirectorService = {
     async createAdvisor(data: any) {
         const teacher_id = Number(data?.teacher_id);
         const class_level = String(data?.class_level || '').trim();
-        const room = String(data?.room || '').trim();
         const term = await resolveAdvisorTerm(
             data?.year != null ? Number(data.year) : undefined,
             data?.semester != null ? Number(data.semester) : undefined
@@ -868,7 +828,6 @@ export const DirectorService = {
 
         if (!Number.isFinite(teacher_id) || teacher_id <= 0) throw new Error('teacher_id is required');
         if (!class_level) throw new Error('class_level is required');
-        if (!room) throw new Error('room is required');
 
         const teacher = await prisma.teachers.findUnique({
             where: { id: teacher_id },
@@ -878,7 +837,6 @@ export const DirectorService = {
 
         const classroom_id = await resolveClassroomIdFromPayload({
             class_level,
-            classroom: room,
         });
         if (!classroom_id) throw new Error('Classroom not found');
 
@@ -909,7 +867,6 @@ export const DirectorService = {
         const nid = Number(id);
         const teacher_id = data?.teacher_id != null ? Number(data.teacher_id) : 0;
         const class_level = String(data?.class_level || '').trim();
-        const room = String(data?.room || '').trim();
         const term = await resolveAdvisorTerm(
             data?.year != null ? Number(data.year) : undefined,
             data?.semester != null ? Number(data.semester) : undefined
@@ -917,7 +874,6 @@ export const DirectorService = {
 
         if (!Number.isFinite(teacher_id) || teacher_id <= 0) throw new Error('teacher_id is required');
         if (!class_level) throw new Error('class_level is required');
-        if (!room) throw new Error('room is required');
 
         const existing = await prisma.classroom_advisors.findUnique({
             where: { id: nid },
@@ -927,7 +883,6 @@ export const DirectorService = {
 
         const classroom_id = await resolveClassroomIdFromPayload({
             class_level,
-            classroom: room,
         });
         if (!classroom_id) throw new Error('Classroom not found');
 
@@ -1191,9 +1146,9 @@ export const DirectorService = {
     async deleteActivity(id: number) {
         // Manually delete related records to avoid foreign key constraints
         // We use catch on all to ensure we try everything even if some tables don't exist
-        await prisma.event_participants.deleteMany({ where: { event_id: id } }).catch(() => {});
+
         await prisma.event_targets.deleteMany({ where: { event_id: id } }).catch(() => {});
-        await prisma.event_evaluations.deleteMany({ where: { event_id: id } }).catch(() => {});
+
         await prisma.evaluation_responses.deleteMany({ where: { target_activity_id: id } }).catch(() => {});
         
         // Brute force other potential hidden/legacy tables
@@ -1495,7 +1450,7 @@ export const DirectorService = {
         year?: number, 
         semester?: number, 
         type: 'student_teaching' | 'student_advisor' | 'teacher_subject' | 'teacher_advisor' = 'student_teaching',
-        filters?: { subject_id?: number; class_level?: string; room?: string; department_id?: number }
+        filters?: { subject_id?: number; class_level?: string; department_id?: number }
     ) {
         // Resolve semester_id
         let semesterId: number | null = null;
@@ -1558,12 +1513,8 @@ export const DirectorService = {
             // Student rates Advisor Teacher:
             // target_teacher_id = teacher_id
             let classLevelFilter = '';
-            let roomFilter = '';
             if (filters?.class_level) {
                 classLevelFilter = `AND split_part(cr.room_name, '/', 1) = '${filters.class_level.replace(/'/g, "''")}'`;
-            }
-            if (filters?.room) {
-                roomFilter = `AND cr.room_name LIKE '%${filters.room.replace(/'/g, "''")}%'`;
             }
 
             const rows: any[] = await prisma.$queryRawUnsafe(`
@@ -1590,7 +1541,6 @@ export const DirectorService = {
                   AND er.target_activity_id IS NULL
                   ${semWhere}
                   ${classLevelFilter}
-                  ${roomFilter}
                 GROUP BY t.id, t.first_name, t.last_name, t.teacher_code
                 ORDER BY t.first_name, t.last_name
             `);
@@ -1651,12 +1601,8 @@ export const DirectorService = {
             // Teacher rates Student (advisory role):
             // target_student_id = student_id, target_subject_id = null, target_teacher_id = null
             let classLevelFilter = '';
-            let roomFilter = '';
             if (filters?.class_level) {
                 classLevelFilter = `AND split_part(cr.room_name, '/', 1) = '${filters.class_level.replace(/'/g, "''")}'`;
-            }
-            if (filters?.room) {
-                roomFilter = `AND cr.room_name LIKE '%${filters.room.replace(/'/g, "''")}%'`;
             }
 
             const rows: any[] = await prisma.$queryRawUnsafe(`
@@ -1682,7 +1628,6 @@ export const DirectorService = {
                   AND er.target_teacher_id IS NULL
                   ${semWhere}
                   ${classLevelFilter}
-                  ${roomFilter}
                 GROUP BY cr.id, split_part(cr.room_name, '/', 1), cr.room_name
                 ORDER BY split_part(cr.room_name, '/', 1), cr.room_name
             `);
@@ -1709,26 +1654,10 @@ export const DirectorService = {
         return Array.from(
             new Set(
                 classrooms
-                    .map((row) => levelFromRoomName(row.room_name || ''))
+                    .map((row) => row.room_name ? row.room_name.split('/')[0] : '')
                     .filter(Boolean)
             )
-        );
-    },
-
-    async getClassrooms() {
-        const classrooms = await prisma.classrooms.findMany({
-            orderBy: { room_name: 'asc' }
-        });
-        
-        // Return unique room parts as the user wants "ห้อง" separate
-        const rooms = new Set<string>();
-        classrooms.forEach(c => {
-            const levelName = levelFromRoomName(c.room_name || '');
-            const roomOnly = roomOnlyLabel(levelName, c.room_name || '');
-            if (roomOnly) rooms.add(roomOnly);
-        });
-
-        return Array.from(rooms).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        ).sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
     },
 
 

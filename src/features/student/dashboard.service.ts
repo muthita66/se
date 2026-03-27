@@ -53,10 +53,6 @@ export const StudentDashboardService = {
                 where: { id: student_id },
                 include: {
                     name_prefixes: true,
-                    classroom_students: {
-                        orderBy: { academic_year: 'desc' },
-                        take: 1
-                    },
                 },
             }),
             prisma.semesters.findFirst({
@@ -71,7 +67,15 @@ export const StudentDashboardService = {
         }
 
         const photo_url = await resolveStudentPhotoUrl(student.id);
-        const currentClassroomId = (student as any).classroom_students?.[0]?.classroom_id || null;
+
+        // Fetch classroom separately for maximum robustness
+        const classroomStudent = await prisma.classroom_students.findFirst({
+            where: { student_id: student.id },
+            include: { classrooms: true },
+            orderBy: { academic_year: 'desc' },
+        });
+        const currentClassroomId = classroomStudent?.classroom_id || null;
+        const currentClassLevel = classroomStudent?.classrooms?.room_name || '';
 
         let activeAssignments: any[] = [];
         if (activeSemester?.id) {
@@ -97,12 +101,7 @@ export const StudentDashboardService = {
                 })
                 : Promise.resolve(0),
             Promise.resolve([] as any[]),
-            prisma.$queryRawUnsafe(`
-                SELECT ep.*, e.title, e.start_datetime, e.location
-                FROM event_participants ep
-                JOIN events e ON ep.event_id = e.id
-                WHERE ep.user_id = $1
-            `, student.user_id),
+            Promise.resolve([] as any[]),
         ]);
 
         const attendanceRecords: any[] = [];
@@ -176,8 +175,7 @@ export const StudentDashboardService = {
                 student_code: student.student_code,
                 name: fullName || student.student_code,
                 image_url: photo_url,
-                class_level: '',
-                room: '',
+                class_level: currentClassLevel,
             },
             currentTerm: activeSemester ? {
                 semester: activeSemester.semester_number,

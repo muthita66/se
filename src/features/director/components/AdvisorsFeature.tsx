@@ -6,7 +6,6 @@ import Portal from "@/components/Portal";
 type AdvisorFormState = {
     teacher_id: string;
     class_level: string;
-    room: string;
     year: string;
     semester: string;
 };
@@ -19,7 +18,6 @@ function emptyAdvisorForm(currentYear?: number, currentSemester?: number): Advis
     return {
         teacher_id: "",
         class_level: "",
-        room: "",
         year: currentYear ? String(currentYear) : "",
         semester: currentSemester ? String(currentSemester) : "1",
     };
@@ -41,7 +39,6 @@ function buildAdvisorPayload(form: AdvisorFormState) {
     return {
         teacher_id,
         class_level,
-        room: form.room.trim(),
         year: nextYear,
         semester: nextSemester,
     };
@@ -154,7 +151,6 @@ export function AdvisorsFeature() {
         setForm({
             teacher_id: advisor.teacher_id == null ? "" : String(advisor.teacher_id),
             class_level: advisor.class_level ?? "",
-            room: advisor.room ?? "",
             year: advisor.year == null ? String(year) : String(advisor.year),
             semester: advisor.semester == null ? String(semester) : String(advisor.semester),
         });
@@ -233,15 +229,6 @@ export function AdvisorsFeature() {
         ...(advisorSource || []).map((a: any) => String(a.class_level || "")),
         ...(studentCounts || []).map((r: any) => String(r.class_level || "")),
         form.class_level || "",
-    ]);
-    const roomOptionsForForm = uniqueSorted([
-        ...(advisorSource || [])
-            .filter((a: any) => !form.class_level || String(a.class_level || "") === form.class_level)
-            .map((a: any) => String(a.room || "")),
-        ...(studentCounts || [])
-            .filter((r: any) => !form.class_level || String(r.class_level || "") === form.class_level)
-            .map((r: any) => String(r.room || "")),
-        form.room || "",
     ]);
     const yearOptions = Array.from(new Set([
         ...(academicYears || []).map(y => String(y.year_name)),
@@ -333,7 +320,6 @@ export function AdvisorsFeature() {
                             <tr className="bg-slate-50 border-b border-slate-200">
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ลำดับ</th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ชั้น</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ห้อง</th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ครูที่ปรึกษา</th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">ปีการศึกษา/ภาคเรียน</th>
                                 <th className="px-4 py-3 text-center text-sm font-semibold text-slate-600">จัดการ</th>
@@ -344,7 +330,6 @@ export function AdvisorsFeature() {
                                 <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
                                     <td className="px-4 py-3 text-sm text-slate-500">{i + 1}</td>
                                     <td className="px-4 py-3 text-sm text-slate-800 font-medium">{a.class_level}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-600">{a.room || "-"}</td>
                                     <td className="px-4 py-3 text-sm text-slate-700">{a.teachers ? `${a.teachers.first_name} ${a.teachers.last_name}` : "-"}</td>
                                     <td className="px-4 py-3 text-sm text-slate-500">{a.year}/{a.semester}</td>
                                     <td className="px-4 py-3 text-center">
@@ -394,23 +379,11 @@ export function AdvisorsFeature() {
                                     <span className="text-sm font-medium text-slate-700">ชั้น</span>
                                     <select
                                         value={form.class_level}
-                                        onChange={(e) => setForm((p) => ({ ...p, class_level: e.target.value, room: "" }))}
+                                        onChange={(e) => setForm((p) => ({ ...p, class_level: e.target.value }))}
                                         className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                                     >
                                         <option value="">- เลือกชั้น -</option>
                                         {classLevelOptionsForForm.map((lvl) => <option key={lvl} value={lvl}>{lvl}</option>)}
-                                    </select>
-                                </label>
-
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700">ห้อง</span>
-                                    <select
-                                        value={form.room}
-                                        onChange={(e) => setForm((p) => ({ ...p, room: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                                    >
-                                        <option value="">- เลือกห้อง -</option>
-                                        {roomOptionsForForm.map((room) => <option key={room} value={room}>{room}</option>)}
                                     </select>
                                 </label>
 

@@ -6,8 +6,7 @@ export async function GET(req: Request) {
         return successResponse(await DirectorService.getAdvisors({
             year: Number(searchParams.get('year')) || undefined,
             semester: Number(searchParams.get('semester')) || undefined,
-            class_level: searchParams.get('class_level') || undefined,
-            room: searchParams.get('room') || undefined
+            class_level: searchParams.get('class_level') || undefined
         }));
     } catch (e: any) { return errorResponse('Failed', 500, e.message); }
 }

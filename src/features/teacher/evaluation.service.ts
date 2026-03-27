@@ -51,7 +51,7 @@ export const TeacherEvaluationService = {
                 },
                 include: {
                     subjects: true,
-                    classrooms: { include: { levels: true } },
+                    classrooms: true,
                     semesters: { include: { academic_years: true } },
                 }
             });
@@ -96,7 +96,7 @@ export const TeacherEvaluationService = {
                     teaching_assignment_id: ta.id,
                     subject_code: ta.subjects?.subject_code || '',
                     subject_name: ta.subjects?.subject_name || '',
-                    class_level: ta.classrooms?.levels?.name || '',
+                    class_level: ta.classrooms?.room_name || '',
                     room: ta.classrooms?.room_name || '',
                     year: ta.semesters?.academic_years?.year_name || '',
                     semester: ta.semesters?.semester_number || 0,

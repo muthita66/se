@@ -626,24 +626,19 @@ export function TeachersFeature() {
                 {
                     key: "department",
                     label: "กลุ่มสาระการเรียนรู้",
-                    options: (items) => Array.from(new Set(items.map((t: any) => (t.department ?? "").toString().trim()).filter((v: string) => v.length > 0))).sort((a, b) => a.localeCompare(b, "th")),
+                    options: (items: any[]) => Array.from(new Set(items.map((t: any) => (t.department ?? "").toString().trim()).filter((v: string) => v.length > 0))).sort((a, b) => a.localeCompare(b, "th")),
                 },
                 {
                     key: "position",
                     label: "ตำแหน่ง",
-                    options: (items) => Array.from(new Set(items.map((t: any) => (t.position ?? "").toString().trim()).filter((v: string) => v.length > 0))).sort((a, b) => a.localeCompare(b, "th")),
+                    options: (items: any[]) => Array.from(new Set(items.map((t: any) => (t.position ?? "").toString().trim()).filter((v: string) => v.length > 0))).sort((a, b) => a.localeCompare(b, "th")),
                 },
                 {
                     key: "advisor_level",
                     label: "ระดับชั้นที่ปรึกษา",
-                    options: (items) => Array.from(new Set(items.map((t: any) => (t.advisor_level ?? "").toString().trim()).filter((v: string) => v.length > 0))).sort((a, b) => a.localeCompare(b, "th")),
-                },
-                {
-                    key: "advisor_room",
-                    label: "ห้อง",
-                    options: (items) => Array.from(new Set(items.map((t: any) => (t.advisor_room ?? "").toString().trim()).filter((v: string) => v.length > 0))).sort((a, b) => a.localeCompare(b, "th", { numeric: true })),
+                    options: (items: any[]) => Array.from(new Set(items.map((t: any) => (t.advisor_level ?? "").toString().trim()).filter((v: string) => v.length > 0))).sort((a, b) => a.localeCompare(b, "th")),
                 }
-            ].filter((filter) => filter.key !== "advisor_room")}
+            ]}
             createFields={() => {
                 return [
                     { key: "teacher_code", label: "Username (รหัสครู)", required: true },
@@ -785,7 +780,6 @@ export function StudentsFeature() {
                     )).sort((a, b) => a.localeCompare(b, "th"));
 
                 const classLevelOptions = uniqueValues("class_level");
-                const roomOptions = uniqueValues("room");
                 const genderOptions = uniqueValues("gender");
                 const statusOptions = uniqueValues("status");
                 const prefixFromData = uniqueValues("prefix");
@@ -805,7 +799,6 @@ export function StudentsFeature() {
                     { key: "first_name", label: "ชื่อ" },
                     { key: "last_name", label: "นามสกุล" },
                     { key: "class_level", label: "ระดับชั้น", type: "select", options: ["", ...classLevelOptions] },
-                    { key: "room", label: "ห้อง", type: "select", options: ["", ...roomOptions] },
                     { key: "gender", label: "เพศ", type: "select", options: ["", ...(genderOptions.length ? genderOptions : ["ชาย", "หญิง"])] },
                     { key: "status", label: "สถานะ", type: "select", options: ["", ...statusOptions] },
                     { key: "phone", label: "เบอร์โทรศัพท์" },
@@ -840,7 +833,6 @@ export function StudentsFeature() {
                     { key: "first_name", label: "ชื่อ" },
                     { key: "last_name", label: "นามสกุล" },
                     { key: "class_level", label: "ชั้น", type: "select", options: ["", ...classLevelOptions] },
-                    { key: "room", label: "ห้อง", type: "select", options: ["", ...roomOptions] },
                     { key: "gender", label: "เพศ", type: "select", options: ["", ...(genderOptions.length ? genderOptions : ["ชาย", "หญิง"])] },
                     { key: "status", label: "สถานะ", type: "select", options: ["", ...statusOptions] },
                     { key: "phone", label: "โทร" },
@@ -850,7 +842,6 @@ export function StudentsFeature() {
                 { key: "student_code", label: "รหัส" },
                 { key: "first_name", label: "ชื่อ-สกุล", render: (_, r) => `${r.prefix || ""}${r.first_name || ""} ${r.last_name || ""}` },
                 { key: "class_level", label: "ชั้น" },
-                { key: "room", label: "ห้อง" },
                 { key: "gender", label: "เพศ" },
                 { key: "phone", label: "โทร" },
             ]}

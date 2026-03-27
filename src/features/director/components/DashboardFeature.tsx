@@ -136,19 +136,7 @@ export function DashboardFeature({ session }: { session: any }) {
     const proj = d.projects || {};
     const health = d.health || {};
     const cur = d.curriculum || {};
-    const evalData = d.evaluation || {};
 
-    const groupEvalByForm = (data: any[]) => {
-        if (!data || !Array.isArray(data)) return {};
-        return data.reduce((acc, curr) => {
-            const fn = curr.form_name || 'แบบประเมินทั่วไป';
-            if (!acc[fn]) acc[fn] = [];
-            acc[fn].push(curr);
-            return acc;
-        }, {} as Record<string, any[]>);
-    };
-    const subjEvals = groupEvalByForm(evalData.subjectEvalByTopic);
-    const advEvals = groupEvalByForm(evalData.advisorEvalByTopic);
 
     const actItems = d.actionItems || [];
     const events = d.upcomingEvents || [];
@@ -159,7 +147,6 @@ export function DashboardFeature({ session }: { session: any }) {
     const exSummary = adv.executiveSummary || [];
     const advRisk = adv.predictiveRisk || [];
     const advSubjDif = adv.subjectDifficulty || [];
-    const advWorkload = adv.teacherWorkloadVsEval || [];
     const advCompetency = adv.competencyRadar || [];
     const advRoi = adv.budgetRoi || [];
     const advAtt = adv.attendanceFlow || [];
@@ -170,7 +157,6 @@ export function DashboardFeature({ session }: { session: any }) {
         { id: 'hr', label: 'บุคลากร', icon: UserIcon, badge: hr.nearRetirement ? hr.nearRetirement : null, badgeType: 'warning' },
         { id: 'health', label: 'สุขภาพ', icon: HeartIcon, badge: health.healthIssues?.length ? health.healthIssues.length : null, badgeType: 'warning' },
         { id: 'curriculum', label: 'หลักสูตร', icon: BookOpenIcon },
-        { id: 'evaluation', label: 'ผลประเมิน', icon: ClipboardDocumentCheckIcon },
         { id: 'projects_budget', label: 'โครงการและงบประมาณ', icon: CurrencyDollarIcon },
     ];
     const renderAtRiskPanel = () => {
@@ -235,7 +221,7 @@ export function DashboardFeature({ session }: { session: any }) {
                                                     <span className="text-slate-400 font-normal ml-2">{st.student_code}</span>
                                                 </div>
                                                 <div className="text-sm text-slate-500">
-                                                    {st.class_level || '-'}/{st.room?.includes('/') ? st.room.split('/').pop() : (st.room || '-')} • {st.gender || '-'} • <span className="font-bold text-emerald-600">เกรดเฉลี่ย: {st.gpa !== null && st.gpa !== undefined ? st.gpa : '-'}</span>
+                                                    {st.class_level || '-'} • {st.gender || '-'} • <span className="font-bold text-emerald-600">เกรดเฉลี่ย: {st.gpa !== null && st.gpa !== undefined ? st.gpa : '-'}</span>
                                                 </div>
                                             </div>
                                             <div className="flex gap-1 shrink-0">
@@ -1168,7 +1154,7 @@ export function DashboardFeature({ session }: { session: any }) {
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div>
                                                         <div className="text-base font-bold text-slate-800">{h.prefix}{h.firstName} {h.lastName}</div>
-                                                        <div className="text-xs text-slate-500 font-medium">{h.classLevel}/{h.room} • รหัส: {h.studentCode}</div>
+                                                        <div className="text-xs text-slate-500 font-medium">{h.classLevel} • รหัส: {h.studentCode}</div>
                                                     </div>
                                                     <span className="text-xs font-bold bg-white px-2 py-0.5 rounded-full border border-orange-100 text-orange-600 shadow-sm">Critical</span>
                                                 </div>
@@ -1201,7 +1187,7 @@ export function DashboardFeature({ session }: { session: any }) {
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div>
                                                         <div className="text-base font-bold text-slate-800">{h.prefix}{h.firstName} {h.lastName}</div>
-                                                        <div className="text-xs text-slate-500 font-medium">{h.classLevel}/{h.room} • รหัส: {h.studentCode}</div>
+                                                        <div className="text-xs text-slate-500 font-medium">{h.classLevel} • รหัส: {h.studentCode}</div>
                                                     </div>
                                                     <span className="text-xs font-bold bg-white px-2 py-0.5 rounded-full border border-rose-100 text-rose-600 shadow-sm">Medical History</span>
                                                 </div>
@@ -1573,150 +1559,6 @@ export function DashboardFeature({ session }: { session: any }) {
                 </div>
             )}
 
-            {/* ════════════ TAB: EVALUATION ════════════ */}
-            {tab === 'evaluation' && (
-                <div className="space-y-5">
-                    {/* Local Filter Bar */}
-                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 text-slate-700 font-bold">
-                            <AdjustmentsHorizontalIcon className="w-5 h-5 text-slate-500" />
-                            <span>ตัวกรองการแสดงผล</span>
-                        </div>
-                        <div className="flex gap-3 flex-wrap flex-1">
-                            <div className="flex-1 min-w-[140px]">
-                                <select className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-medium text-slate-700" value={filters.class_level} onChange={e => updateFilter('class_level', e.target.value)}>
-                                    <option value="">ระดับชั้น (ทั้งหมด)</option>
-                                    {(filterOptions?.classLevels || []).map((l: string) => <option key={l} value={l}>{l}</option>)}
-                                </select>
-                            </div>
-                            {hasFilters && <button onClick={clearFilters} className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded-md bg-red-50 ml-auto self-center font-medium">✕ ล้าง</button>}
-                        </div>
-                    </div>
-
-                    {/* Overall eval */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-wrap justify-around gap-6">
-                        <Gauge value={hr.evalAvg ? Math.round((hr.evalAvg / 5) * 100) : 0} label={`ประเมินการสอนเฉลี่ย ${hr.evalAvg ? Number(hr.evalAvg).toFixed(2) : 0}/5`} color="#8b5cf6" />
-                    </div>
-
-                    {/* Workload vs Eval Correlation */}
-                    {advWorkload.length > 0 && (
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-                            <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                                <ScaleIcon className="w-5 h-5 text-slate-400" />
-                                ความสัมพันธ์ภาระงาน (Section) vs คะแนนผลประเมิน
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto pr-2">
-                                {advWorkload.slice(0, 20).map((w: any, i: number) => {
-                                    const score = parseFloat(w.avg_eval);
-                                    const secs = parseInt(w.section_count);
-                                    const isWarning = secs > 10 && score < 3.8;
-                                    return (
-                                        <div key={i} className={`p-3 rounded-xl border flex flex-col gap-2 ${isWarning ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}>
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-xs font-bold text-slate-700 truncate" title={`${w.first_name} ${w.last_name}`}>{w.first_name} {w.last_name}</span>
-                                                {isWarning && (
-                                                    <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
-                                                        <ExclamationTriangleIcon className="w-3 h-3" />
-                                                        Overload
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex justify-between items-end mt-1">
-                                                <div>
-                                                    <div className="text-[9px] text-slate-500 mb-0.5">Section สอน</div>
-                                                    <div className="text-sm font-bold text-slate-800">{secs} <span className="text-[9px] font-normal text-slate-400">กลุ่ม</span></div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-[9px] text-slate-500 mb-0.5">ผลประเมิน</div>
-                                                    <div className={`text-sm font-bold ${score >= 4 ? 'text-green-600' : score >= 3.5 ? 'text-blue-600' : 'text-red-600'}`}>{score.toFixed(2)}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                        {/* Subject eval by topic */}
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-                            <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                                <ChartBarIcon className="w-5 h-5 text-emerald-500" />
-                                ผลประเมินรายหัวข้อ (วิชา)
-                            </h3>
-                            {Object.keys(subjEvals).length > 0 ? (
-                                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {Object.entries(subjEvals).map(([formName, topics]: [string, any], fi: number) => (
-                                        <div key={fi} className="space-y-2">
-                                            <div className="text-xs font-bold text-slate-500 bg-slate-100/70 px-2 py-1.5 rounded-md inline-block border border-slate-200/60 shadow-sm flex items-center gap-1.5 break-words max-w-full">
-                                                <ClipboardDocumentCheckIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                                {formName}
-                                            </div>
-                                            {(topics as any[]).map((t: any, i: number) => (
-                                                <div key={i} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-                                                    <span className="text-sm text-slate-700 font-medium flex-1 truncate" title={t.topic}>{t.topic}</span>
-                                                    <div className="flex flex-col items-end w-24 shrink-0">
-                                                        <span className="text-[11px] font-bold text-violet-700 mb-1">{Math.round((t.avg_score || 0) * 100) / 100}/5</span>
-                                                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-violet-500 rounded-full transition-all duration-500" style={{ width: `${Math.min((t.avg_score || 0) * 20, 100)}%` }} />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : <p className="text-sm text-slate-500 text-center py-6 border border-dashed border-slate-200 rounded-xl">ไม่มีข้อมูล</p>}
-                        </div>
-                        {/* Advisor eval by topic */}
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-                            <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                                <DocumentTextIcon className="w-5 h-5 text-emerald-500" />
-                                ผลประเมินรายหัวข้อ (ที่ปรึกษา)
-                            </h3>
-                            {Object.keys(advEvals).length > 0 ? (
-                                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {Object.entries(advEvals).map(([formName, topics]: [string, any], fi: number) => (
-                                        <div key={fi} className="space-y-2">
-                                            <div className="text-xs font-bold text-slate-500 bg-slate-100/70 px-2 py-1.5 rounded-md inline-block border border-slate-200/60 shadow-sm flex items-center gap-1.5 break-words max-w-full">
-                                                <ClipboardDocumentCheckIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                                {formName}
-                                            </div>
-                                            {(topics as any[]).map((t: any, i: number) => (
-                                                <div key={i} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-                                                    <span className="text-sm text-slate-700 font-medium flex-1 truncate" title={t.topic}>{t.topic}</span>
-                                                    <div className="flex flex-col items-end w-24 shrink-0">
-                                                        <span className="text-[11px] font-bold text-emerald-700 mb-1">{Math.round((t.avg_score || 0) * 100) / 100}/5</span>
-                                                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${Math.min((t.avg_score || 0) * 20, 100)}%` }} />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : <p className="text-sm text-slate-500 text-center py-6 border border-dashed border-slate-200 rounded-xl">ไม่มีข้อมูล</p>}
-                        </div>
-                    </div>
-                    {/* Top/Bottom teachers */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                        <div className="bg-white rounded-2xl shadow-sm border border-green-200 overflow-hidden">
-                            <div className="p-3 bg-green-50 border-b border-green-200"><h3 className="font-bold text-green-800 text-sm">🏆 Top 10 ผลประเมินสูงสุด</h3></div>
-                            <div className="overflow-x-auto max-h-[300px] overflow-y-auto"><table className="w-full"><tbody>{(evalData.subjectEvalTop || []).map((t: any, i: number) => (
-                                <tr key={i} className="border-b border-slate-50 hover:bg-green-50/30"><td className="px-3 py-1.5 text-sm text-slate-500">{i + 1}</td><td className="px-3 py-1.5 text-sm text-slate-800 font-medium">{t.prefix}{t.first_name} {t.last_name}</td><td className="px-3 py-1.5 text-sm text-slate-500">{t.department || '-'}</td><td className="px-3 py-1.5 text-center"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">{Math.round((t.avg_score || 0) * 100) / 100}</span></td></tr>
-                            ))}</tbody></table></div>
-                        </div>
-                        <div className="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden">
-                            <div className="p-3 bg-amber-50 border-b border-amber-200"><h3 className="font-bold text-amber-800 text-sm">📉 Bottom 10 ผลประเมินต่ำสุด</h3></div>
-                            <div className="overflow-x-auto max-h-[300px] overflow-y-auto"><table className="w-full"><tbody>{(evalData.subjectEvalBottom || []).map((t: any, i: number) => (
-                                <tr key={i} className="border-b border-slate-50 hover:bg-amber-50/30"><td className="px-3 py-1.5 text-sm text-slate-500">{i + 1}</td><td className="px-3 py-1.5 text-sm text-slate-800 font-medium">{t.prefix}{t.first_name} {t.last_name}</td><td className="px-3 py-1.5 text-sm text-slate-500">{t.department || '-'}</td><td className="px-3 py-1.5 text-center"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">{Math.round((t.avg_score || 0) * 100) / 100}</span></td></tr>
-                            ))}</tbody></table></div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
 
         </div>

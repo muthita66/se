@@ -90,30 +90,6 @@ export const TeacherApiService = {
         if (teacher_id) params.set('teacher_id', String(teacher_id));
         return fetchApi<any>(`/api/teacher/student-profile?${params.toString()}`);
     },
-    async getStudentAdvisorEvaluationTemplate(student_id: number, teacher_id: number, year: number, semester: number, sub_mode: string = 'attributes') {
-        const params = new URLSearchParams({
-            student_id: String(student_id),
-            teacher_id: String(teacher_id),
-            year: String(year),
-            semester: String(semester),
-            sub_mode,
-        });
-        return fetchApi<any>(`/api/teacher/student-profile/advisor-evaluation?${params.toString()}`);
-    },
-    async saveStudentAdvisorEvaluation(payload: {
-        student_id: number;
-        teacher_id: number;
-        year: number;
-        semester: number;
-        data: { name: string; score: number }[];
-        feedback?: string;
-        sub_mode?: string;
-    }) {
-        return fetchApi<any>('/api/teacher/student-profile/advisor-evaluation', {
-            method: 'POST',
-            body: JSON.stringify(payload),
-        });
-    },
     async uploadStudentPhoto(student_id: number, teacher_id: number, file: File) {
         const formData = new FormData();
         formData.set('student_id', String(student_id));
@@ -292,8 +268,13 @@ export const TeacherApiService = {
             body: JSON.stringify({ action: 'delete-criteria', id })
         });
     },
-    async getFitnessStudents(teacher_id: number, class_level: string, room: string, year?: number, semester?: number | string) {
-        const params = new URLSearchParams({ action: 'students', teacher_id: String(teacher_id), class_level, room });
+    async getFitnessStudents(teacher_id: number, class_level: string, room?: string, year?: number, semester?: number | string) {
+        const params = new URLSearchParams({ 
+            action: 'students', 
+            teacher_id: String(teacher_id), 
+            class_level, 
+            room: room || '' 
+        });
         if (year) params.set('year', String(year));
         if (semester && semester !== 'all') params.set('semester', String(semester));
         return fetchApi<any[]>(`/api/teacher/fitness?${params.toString()}`);
@@ -316,83 +297,6 @@ export const TeacherApiService = {
         });
     },
 
-    // --- Teaching Evaluation ---
-    async getTeachingEvaluation(teacher_id: number, year?: number, semester?: number) {
-        const params = new URLSearchParams();
-        params.set('teacher_id', String(teacher_id));
-        if (year) params.set('year', String(year));
-        if (semester) params.set('semester', String(semester));
-        return fetchApi<any[]>(`/api/teacher/teaching-evaluation?${params.toString()}`);
-    },
-
-    async getTeachingEvaluationDetailed(teacher_id: number, section_id?: number, year?: number, semester?: number) {
-        const params = new URLSearchParams({ action: 'results' });
-        params.append("teacher_id", teacher_id.toString());
-        if (section_id) params.append("section_id", section_id.toString());
-        if (year) params.append("year", year.toString());
-        if (semester) params.append("semester", semester.toString());
-        return fetchApi<any>(`/api/teacher/teaching-evaluation?${params.toString()}`);
-    },
-
-    async getSectionStudentsForEvaluation(teacher_id: number, section_id: number, year: number, semester: number) {
-        const params = new URLSearchParams({ action: 'students' });
-        params.append("teacher_id", teacher_id.toString());
-        params.append("section_id", section_id.toString());
-        params.append("year", year.toString());
-        params.append("semester", semester.toString());
-        return fetchApi<any[]>(`/api/teacher/teaching-evaluation?${params.toString()}`);
-    },
-
-    async getTeachingStudentEvaluationResults(teacher_id: number, section_id: number, year: number, semester: number) {
-        const params = new URLSearchParams({ action: 'student-results' });
-        params.append("teacher_id", teacher_id.toString());
-        params.append("section_id", section_id.toString());
-        params.append("year", year.toString());
-        params.append("semester", semester.toString());
-        return fetchApi<any[]>(`/api/teacher/teaching-evaluation?${params.toString()}`);
-    },
-
-    async getSubjectEvaluationTemplate(teacher_id: number, student_id: number, section_id: number, year: number, semester: number) {
-        const params = new URLSearchParams({ action: 'template' });
-        params.append("teacher_id", teacher_id.toString());
-        params.append("student_id", student_id.toString());
-        params.append("section_id", section_id.toString());
-        params.append("year", year.toString());
-        params.append("semester", semester.toString());
-        return fetchApi<any>(`/api/teacher/teaching-evaluation?${params.toString()}`);
-    },
-
-    async submitSubjectEvaluation(data: {
-        teacher_id: number;
-        student_id: number;
-        section_id: number;
-        year: number;
-        semester: number;
-        data: { name: string; score: number }[];
-        feedback?: string;
-    }) {
-        return fetchApi<any>('/api/teacher/teaching-evaluation', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    },
-
-    // --- Advisor Evaluation ---
-    async getAdvisorEvaluation(teacher_id: number, year?: number, semester?: number) {
-        const params = new URLSearchParams();
-        params.set('teacher_id', String(teacher_id));
-        if (year) params.set('year', String(year));
-        if (semester) params.set('semester', String(semester));
-        return fetchApi<any[]>(`/api/teacher/advisor-evaluation?${params.toString()}`);
-    },
-    async getAdvisorStudentResults(teacher_id: number, year?: number, semester?: number) {
-        const params = new URLSearchParams();
-        params.set('teacher_id', String(teacher_id));
-        params.set('mode', 'student_results');
-        if (year) params.set('year', String(year));
-        if (semester) params.set('semester', String(semester));
-        return fetchApi<any[]>(`/api/teacher/advisor-evaluation?${params.toString()}`);
-    },
     async getAllTeachers() {
         return fetchApi<any[]>('/api/teacher/teachers');
     },

@@ -8,16 +8,9 @@ function currentAcademicYearGuess() {
     return getCurrentAcademicYearBE();
 }
 
-function formatClassRoomDisplay(classLevel?: string | null, room?: string | null) {
+function formatClassRoomDisplay(classLevel?: string | null) {
     const level = String(classLevel || "").trim();
-    const roomValue = String(room || "").trim();
-
-    if (!level && !roomValue) return "-";
-    if (!roomValue) return level || "-";
-    if (!level) return roomValue;
-    if (roomValue === level || roomValue.startsWith(`${level}/`)) return roomValue;
-
-    return `${level}/${roomValue}`;
+    return level || "-";
 }
 
 export function StudentsFeature({ session }: { session: any }) {
@@ -70,7 +63,7 @@ export function StudentsFeature({ session }: { session: any }) {
         const q = search.trim().toLowerCase();
         if (!q) return students;
         return students.filter((s) => {
-            const text = `${s.student_code || ""} ${s.prefix || ""} ${s.first_name || ""} ${s.last_name || ""} ${s.class_level || ""} ${s.room || ""}`.toLowerCase();
+            const text = `${s.student_code || ""} ${s.prefix || ""} ${s.first_name || ""} ${s.last_name || ""} ${s.class_level || ""}`.toLowerCase();
             return text.includes(q);
         });
     }, [students, search]);
@@ -130,7 +123,7 @@ export function StudentsFeature({ session }: { session: any }) {
                                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">เลขที่</th>
                                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">รหัสนักเรียน</th>
                                 <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">ชื่อ-นามสกุล</th>
-                                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">ชั้น/ห้อง</th>
+                                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">ชั้น</th>
                                 <th className="px-6 py-3 text-center text-sm font-semibold text-slate-600">ดูข้อมูล</th>
                             </tr>
                         </thead>
@@ -140,7 +133,7 @@ export function StudentsFeature({ session }: { session: any }) {
                                     <td className="px-6 py-4 text-sm text-slate-500">{s.roll_number || "-"}</td>
                                     <td className="px-6 py-4 text-sm font-medium text-slate-800 tracking-tight">{s.student_code}</td>
                                     <td className="px-6 py-4 text-sm text-slate-800 font-medium">{`${s.prefix || ""}${s.first_name || ""} ${s.last_name || ""}`.trim()}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">{formatClassRoomDisplay(s.class_level, s.room)}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600">{formatClassRoomDisplay(s.class_level)}</td>
                                     <td className="px-6 py-4 text-center">
                                         <Link href={`/teacher/student_profile?id=${s.id}`} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">ดูโปรไฟล์</Link>
                                     </td>

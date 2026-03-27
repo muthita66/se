@@ -209,7 +209,7 @@ export const TeacherCalendarService = {
 
     async remove(id: number) {
         // Delete related records first
-        await prisma.event_participants.deleteMany({ where: { event_id: id } });
+
         await prisma.event_targets.deleteMany({ where: { event_id: id } });
         await (prisma as any).activity_evaluation_link.deleteMany({ where: { event_id: id } });
         return prisma.events.delete({ where: { id } });

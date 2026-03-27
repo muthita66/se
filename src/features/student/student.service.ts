@@ -8,7 +8,7 @@ export const StudentService = {
             include: {
                 name_prefixes: true,
                 classroom_students: {
-                    include: { classrooms: { include: { levels: true } } },
+                    include: { classrooms: true },
                     orderBy: { academic_year: 'desc' },
                     take: 1
                 },
@@ -24,7 +24,7 @@ export const StudentService = {
             first_name: s.first_name,
             last_name: s.last_name,
             gender: s.genders?.name || '',
-            class_level: s.classroom_students?.[0]?.classrooms?.levels?.name || '',
+            class_level: s.classroom_students?.[0]?.classrooms?.room_name ? s.classroom_students[0].classrooms.room_name.split('/')[0] : '',
             room: s.classroom_students?.[0]?.classrooms?.room_name || '',
             status: s.student_statuses?.status_name || '',
             phone: s.phone || '',
@@ -37,7 +37,7 @@ export const StudentService = {
             include: {
                 name_prefixes: true,
                 classroom_students: {
-                    include: { classrooms: { include: { levels: true } } },
+                    include: { classrooms: true },
                     orderBy: { academic_year: 'desc' },
                     take: 1
                 },
@@ -53,7 +53,7 @@ export const StudentService = {
             first_name: s.first_name,
             last_name: s.last_name,
             gender: (s as any).genders?.name || '',
-            class_level: (s as any).classroom_students?.[0]?.classrooms?.levels?.name || '',
+            class_level: (s as any).classroom_students?.[0]?.classrooms?.room_name ? (s as any).classroom_students?.[0]?.classrooms?.room_name.split('/')[0] : '',
             room: (s as any).classroom_students?.[0]?.classrooms?.room_name || '',
             status: (s as any).student_statuses?.status_name || '',
             phone: s.phone || '',

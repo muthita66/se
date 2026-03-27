@@ -29,21 +29,12 @@ export const TeacherFitnessService = {
             }
         };
         
-        if ((classLevel && classLevel !== 'ทั้งหมด') || (room && room !== 'ทั้งหมด')) {
+        if ((classLevel && classLevel !== 'ทั้งหมด') || (room && room !== 'ทั้งหมด' && room !== '')) {
             if (classLevel && classLevel !== 'ทั้งหมด') {
-                const levelNum = extractLevelNumber(classLevel);
-                if (levelNum) {
-                    where.classroom_students.some.classrooms.levels = { 
-                        name: { contains: levelNum } 
-                    };
-                } else {
-                    where.classroom_students.some.classrooms.levels = { 
-                        name: classLevel 
-                    };
-                }
+                where.classroom_students.some.classrooms.room_name = { contains: classLevel };
             }
             
-            if (room && room !== 'ทั้งหมด') {
+            if (room && room !== 'ทั้งหมด' && room !== '') {
                 where.classroom_students.some.classrooms.room_name = { endsWith: room };
             }
         }
@@ -55,7 +46,7 @@ export const TeacherFitnessService = {
                 name_prefixes: true,
                 genders: true,
                 classroom_students: { 
-                    include: { classrooms: { include: { levels: true } } },
+                    include: { classrooms: true },
                     take: 1
                 }
             },
@@ -102,7 +93,7 @@ export const TeacherFitnessService = {
         const mapped = (students as any[]).map((s: any) => {
             const cs = s.classroom_students?.[0];
             const currentClassroom = cs?.classrooms;
-            const levelName = currentClassroom?.levels?.name || '';
+            const levelName = currentClassroom?.room_name || '';
             const roomName = currentClassroom?.room_name || '';
             const className = levelName && roomName ? `${levelName}/${roomName}` : (levelName || roomName || '');
             
@@ -241,18 +232,18 @@ export const TeacherFitnessService = {
         const advisors = await prisma.classroom_advisors.findMany({
             where: { teacher_id },
             include: {
-                classrooms: {
-                    include: {
-                        levels: true
-                    }
-                }
+                classrooms: true
             }
         });
 
-        return advisors.map(a => ({
-            class_level: a.classrooms.levels.name,
-            room: a.classrooms.room_name
-        }));
+        return advisors.map(a => {
+            const fullRoom = a.classrooms.room_name;
+            const level = fullRoom.includes('/') ? fullRoom.split('/')[0] : fullRoom;
+            return {
+                class_level: level,
+                room: ''
+            };
+        });
     },
     async getFitnessCriteria(test_name: string, grade_level: string, academic_year?: number, gender?: string) {
         let sql = `SELECT * FROM fitness_test_criteria WHERE test_name ILIKE $1`;
@@ -347,7 +338,7 @@ export const TeacherFitnessService = {
                 ORDER BY test_name ASC
             `,
             prisma.$queryRaw<any[]>`
-                SELECT id, name FROM levels ORDER BY name ASC
+                SELECT id, room_name as name FROM classrooms ORDER BY room_name ASC
             `
         ]);
         return { testNames, levels };

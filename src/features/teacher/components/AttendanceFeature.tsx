@@ -66,10 +66,10 @@ export function AttendanceFeature({ session }: { session: any }) {
     const loadAttendance = async () => {
         if (!selectedSection) return;
         setLoading(true);
-        const data = await TeacherApiService.getAttendanceStudents(session.id, selectedSection, date);
-        setStudents(data || []);
+        const data: any = await TeacherApiService.getAttendanceStudents(session.id, selectedSection, date);
+        setStudents(data?.students || []);
         const map: Record<number, string> = {};
-        (data || []).forEach((s: any) => { if (s.status) map[s.student_id] = s.status; });
+        (data?.students || []).forEach((s: any) => { if (s.status) map[s.student_id] = s.status; });
         setStatusMap(map);
         setLoading(false);
     };
@@ -209,6 +209,7 @@ export function AttendanceFeature({ session }: { session: any }) {
                     )}
                 </div>
             )}
+
         </div>
     );
 }

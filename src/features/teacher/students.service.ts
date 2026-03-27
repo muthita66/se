@@ -340,7 +340,7 @@ export const TeacherStudentsService = {
                 name_prefixes: true,
                 classroom_students: {
                     where: { classroom_id: { in: classroomIds } },
-                    include: { classrooms: { include: { levels: true } } },
+                    include: { classrooms: true },
                     take: 1
                 },
                 genders: true,
@@ -436,8 +436,7 @@ export const TeacherStudentsService = {
                 last_name: s.last_name,
                 name: fullName,
                 gender: s.genders?.name || '',
-                class_level: currentClassroom?.levels?.name || '',
-                room: currentClassroom?.room_name || '',
+                class_level: currentClassroom?.room_name ? currentClassroom.room_name.split('/')[0] : '',
                 status: s.student_statuses?.status_name || 'active',
                 roll_number: currentClassroomStudent?.roll_number,
                 evaluated: evaluatedStudentIds.has(s.id),
@@ -461,7 +460,7 @@ export const TeacherStudentsService = {
                 name_prefixes: true,
                 classroom_students: {
                     orderBy: { academic_year: 'desc' },
-                    include: { classrooms: { include: { levels: true, programs: true } } },
+                    include: { classrooms: true },
                     take: 1
                 },
                 genders: true,
@@ -479,8 +478,7 @@ export const TeacherStudentsService = {
             first_name: s.first_name,
             last_name: s.last_name,
             gender: s.genders?.name || '',
-            class_level: currentClassroom?.levels?.name || '',
-            room: currentClassroom?.room_name || '',
+            class_level: currentClassroom?.room_name ? currentClassroom.room_name.split('/')[0] : '',
             program: currentClassroom?.programs?.name || '',
             status: s.student_statuses?.status_name || '',
             date_of_birth: s.date_of_birth,

@@ -10,12 +10,16 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const teacher_id = searchParams.get('teacher_id') ? Number(searchParams.get('teacher_id')) : null;
 
-        // Find teacher record linked to this user
+        // Find teacher record
+        // Note: session.id is set to teacher.id in AuthService for 'teacher' role
         const teacher = await prisma.teachers.findFirst({
-            where: teacher_id ? { id: teacher_id } : { user_id: session.id },
+            where: teacher_id ? { id: teacher_id } : { id: Number(session.id) },
         });
 
-        if (!teacher) return errorResponse('Teacher not found', 404);
+        if (!teacher) {
+            console.error(`[API] Teacher not found for session.id: ${session.id}, teacher_id param: ${teacher_id}`);
+            return errorResponse('Teacher not found', 404);
+        }
 
         // Get all active teaching assignments with their schedules
         const assignments = await prisma.teaching_assignments.findMany({
@@ -28,11 +32,7 @@ export async function GET(request: Request) {
                         subject_categories: true,
                     }
                 },
-                classrooms: {
-                    include: {
-                        levels: true,
-                    }
-                },
+                classrooms: true,
                 semesters: {
                     include: {
                         academic_years: true,
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
                     subject_code: assign.subjects.subject_code,
                     subject_name: assign.subjects.subject_name,
                     credit: assign.subjects.credit,
-                    class_level: assign.classrooms?.levels?.name ?? '-',
+                    class_level: assign.classrooms?.room_name ? assign.classrooms.room_name.split('/')[0] : '-',
                     classroom: assign.classrooms?.room_name ?? '-',
                     day_id: sched.day_id,
                     day_name: sched.day_of_weeks?.day_name_th ?? '-',
@@ -97,9 +97,14 @@ export async function GET(request: Request) {
 
         return successResponse({
             slots,
-            periods: periodsData
+            periods: periodsData,
+            _debug: {
+                teacher_id: teacher.id,
+                assignments_count: assignments.length,
+            }
         });
     } catch (error: any) {
+        console.error('[API] teaching-schedule error:', error);
         return errorResponse('Failed to load teaching schedule', 500, error.message);
     }
 }

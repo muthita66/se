@@ -16,6 +16,15 @@ export const ProfileService = {
             }
         });
         if (!s) return null;
+
+        // Fetch classroom separately for maximum robustness
+        const classroomStudent = await prisma.classroom_students.findFirst({
+            where: { student_id: s.id },
+            include: { classrooms: true },
+            orderBy: { academic_year: 'desc' },
+        });
+        const currentClassLevel = classroomStudent?.classrooms?.room_name || '';
+
         return {
             id: s.id,
             student_code: s.student_code,
@@ -23,8 +32,8 @@ export const ProfileService = {
             first_name: s.first_name,
             last_name: s.last_name,
             gender: s.genders?.name || '',
-            class_level: '',
-            room: '',
+            class_level: currentClassLevel,
+            room: '-',
             program: '',
             status: s.student_statuses?.status_name || '',
             birthday: s.date_of_birth,

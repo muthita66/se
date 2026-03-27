@@ -1,12 +1,10 @@
 import { fetchApi } from './api-client';
 
 export const DirectorApiService = {
-    // --- Dashboard ---
-    async getSummary(filters?: { gender?: string; class_level?: string; room?: string; subject_id?: number; learning_group_id?: number }) {
+    async getSummary(filters?: { gender?: string; class_level?: string; subject_id?: number; learning_group_id?: number }) {
         const params = new URLSearchParams();
         if (filters?.gender) params.append('gender', filters.gender);
         if (filters?.class_level) params.append('class_level', filters.class_level);
-        if (filters?.room) params.append('room', filters.room);
         if (filters?.subject_id) params.append('subject_id', filters.subject_id.toString());
         if (filters?.learning_group_id) params.append('learning_group_id', filters.learning_group_id.toString());
         return fetchApi<any>(`/api/director/dashboard?${params.toString()}`);
@@ -34,11 +32,10 @@ export const DirectorApiService = {
     },
 
     // --- Students CRUD ---
-    async getStudents(filters?: { search?: string; class_level?: string; room?: string }) {
+    async getStudents(filters?: { search?: string; class_level?: string }) {
         const params = new URLSearchParams();
         if (filters?.search) params.append('search', filters.search);
         if (filters?.class_level) params.append('class_level', filters.class_level);
-        if (filters?.room) params.append('room', filters.room);
         return fetchApi<any[]>(`/api/director/students?${params.toString()}`);
     },
     async createStudent(data: any) {
@@ -98,12 +95,11 @@ export const DirectorApiService = {
     },
 
     // --- Advisors ---
-    async getAdvisors(filters?: { year?: number; semester?: number; class_level?: string; room?: string }) {
+    async getAdvisors(filters?: { year?: number; semester?: number; class_level?: string }) {
         const params = new URLSearchParams();
         if (filters?.year) params.append('year', filters.year.toString());
         if (filters?.semester) params.append('semester', filters.semester.toString());
         if (filters?.class_level) params.append('class_level', filters.class_level);
-        if (filters?.room) params.append('room', filters.room);
         return fetchApi<any[]>(`/api/director/advisors?${params.toString()}`);
     },
     async createAdvisor(data: any) {
@@ -199,12 +195,11 @@ export const DirectorApiService = {
         const q = params.toString();
         return fetchApi<any[]>(`/api/director/evaluation${q ? `?${q}` : ''}`);
     },
-    async getEvaluationResults(year: number, semester: number, type: string, filters?: { subject_id?: number; class_level?: string; room?: string; department_id?: number }) {
+    async getEvaluationResults(year: number, semester: number, type: string, filters?: { subject_id?: number; class_level?: string; department_id?: number }) {
         const params = new URLSearchParams({ type, year: year.toString(), semester: semester.toString() });
         if (filters?.subject_id) params.append('subject_id', filters.subject_id.toString());
         if (filters?.department_id) params.append('department_id', filters.department_id.toString());
         if (filters?.class_level) params.append('class_level', filters.class_level);
-        if (filters?.room) params.append('room', filters.room);
         return fetchApi<any[]>(`/api/director/evaluation?${params.toString()}`);
     },
 
@@ -217,9 +212,6 @@ export const DirectorApiService = {
     },
     async getGradeLevels() {
         return fetchApi<string[]>('/api/director/grade-levels');
-    },
-    async getClassrooms() {
-        return fetchApi<string[]>('/api/director/classrooms');
     },
     async getAcademicYears() {
         return fetchApi<any[]>('/api/director/lookups/academic-years');

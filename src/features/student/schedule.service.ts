@@ -10,11 +10,7 @@ export const ScheduleService = {
                 ...(year ? { academic_year: Number(year) } : {}),
             },
             include: {
-                classrooms: {
-                    include: {
-                        levels: true,
-                    },
-                },
+                classrooms: true,
             },
             orderBy: { academic_year: 'desc' },
         });
@@ -23,11 +19,7 @@ export const ScheduleService = {
             classroomStudent = await prisma.classroom_students.findFirst({
                 where: { student_id },
                 include: {
-                    classrooms: {
-                        include: {
-                            levels: true,
-                        },
-                    },
+                    classrooms: true,
                 },
                 orderBy: { academic_year: 'desc' },
             });
@@ -42,19 +34,19 @@ export const ScheduleService = {
         const classroomStudent = await this.resolveStudentClassroom(student_id, year);
         if (!classroomStudent?.classroom_id) return [];
 
-        const assignmentWhere: any = {
-            classroom_id: classroomStudent.classroom_id,
-        };
-
-        if (year || semester) {
-            assignmentWhere.semesters = {
+        const semesterData = await prisma.semesters.findFirst({
+            where: {
                 ...(year ? { academic_years: { year_name: String(year) } } : {}),
-                ...(semester ? { semester_number: semester } : {}),
-            };
-        }
+                ...(semester ? { semester_number: Number(semester) } : {}),
+            },
+            select: { id: true }
+        });
 
         const assignments = await prisma.teaching_assignments.findMany({
-            where: assignmentWhere,
+            where: {
+                classroom_id: classroomStudent.classroom_id,
+                ...(semesterData ? { semester_id: semesterData.id } : {}),
+            },
             include: {
                 subjects: true,
                 teachers: {
@@ -62,9 +54,7 @@ export const ScheduleService = {
                         name_prefixes: true,
                     },
                 },
-                classrooms: {
-                    include: { levels: true },
-                },
+                classrooms: true,
                 semesters: {
                     include: { academic_years: true },
                 },
@@ -104,7 +94,7 @@ export const ScheduleService = {
                     end_time: cs.periods?.end_time,
                     room_name: cs.rooms?.room_name || '',
                     room: cs.rooms?.room_name || '',
-                    class_level: (ta.classrooms as any)?.levels?.name || '',
+                    class_level: ta.classrooms?.room_name || '',
                     classroom: ta.classrooms?.room_name || '',
                     year: ta.semesters?.academic_years?.year_name || '',
                     semester: ta.semesters?.semester_number || 0,
@@ -186,49 +176,11 @@ export const ScheduleService = {
                 semester_id: semesterData.id,
                 subject_id: { in: subjectIds }
             },
-            include: {
-                exam_schedule_rooms: {
-                    include: {
-                        rooms: {
-                            include: {
-                                buildings: true
-                            }
-                        }
-                    }
-                }
-            }
+            include: { subjects: true }
         });
 
         return exams.map(exam => {
-            // Group rooms by building
-            const buildingMap = new Map<string, string[]>();
-            
-            // Filter rooms that match student regular room if there's any overlap!
-            const targetRoomsList = exam.exam_schedule_rooms.filter(er => {
-                if (regularRoomSet.size === 0) return true; // fallback to all
-                return er.rooms?.room_name && regularRoomSet.has(er.rooms.room_name);
-            });
-
-            // If no overlap found, use all rooms as fallback instead of returning empty
-            const roomsToProcess = targetRoomsList.length > 0 ? targetRoomsList : exam.exam_schedule_rooms;
-
-            roomsToProcess.forEach(er => {
-                const room = er.rooms;
-                if (room) {
-                    const bName = room.buildings?.building_name || '';
-                    const rName = room.room_name || '';
-                    if (!buildingMap.has(bName)) buildingMap.set(bName, []);
-                    buildingMap.get(bName)!.push(rName);
-                }
-            });
-
-            const roomsList = Array.from(buildingMap.entries()).map(([building, rooms]) => {
-                const bText = building ? ` (${building})` : '';
-                // Clean rooms: remove "ห้องเรียน" or "ห้อง" prefix if present
-                const cleanRooms = rooms.map(r => r.replace(/ห้องเรียน|ห้อง/g, "").trim());
-                return `${cleanRooms.join(', ')}${bText}`;
-            });
-            const roomNames = roomsList.join(', ');
+            const roomNames = '-';
             
             const formatTime = (date: Date | null) => {
                 if (!date) return '';
@@ -255,7 +207,5 @@ export const ScheduleService = {
                 class_level: '', 
             };
         });
-
-
     }
 };

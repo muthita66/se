@@ -8,7 +8,6 @@ type StudentDashboardSession = {
     name?: string;
     code?: string;
     class_level?: string;
-    room?: string;
 };
 
 type StudentDashboardData = {
@@ -18,7 +17,6 @@ type StudentDashboardData = {
         image_url?: string | null;
         name?: string;
         class_level?: string;
-        room?: string;
     };
     currentTerm?: {
         semester?: number;
@@ -121,8 +119,6 @@ export function DashboardFeature({ session }: { session: StudentDashboardSession
     const currentTerm = data?.currentTerm;
 
     const displayClassLevel = profile.class_level || session.class_level || '-';
-    const rawRoom = profile.room || session.room || '-';
-    const displayRoom = rawRoom.includes('/') ? rawRoom.split('/').pop() : rawRoom;
 
     const cards = [
         { label: 'รายวิชาตามตาราง', value: stats.registeredSubjects ?? 0, href: '/student/schedule', color: 'from-emerald-500 to-teal-600', icon: BookOpen },
@@ -171,7 +167,7 @@ export function DashboardFeature({ session }: { session: StudentDashboardSession
                                 </p>
                                 <p className="text-emerald-100 text-sm flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-300"></span>
-                                    ชั้น{displayClassLevel} ห้อง {displayRoom}
+                                    ชั้น{displayClassLevel}
                                 </p>
                             </div>
                         </div>

@@ -41,14 +41,9 @@ function hasMeaningfulValue(v: any) {
     return v !== null && v !== undefined && String(v).trim() !== "" && String(v).trim() !== "-";
 }
 
-function formatClassRoomDisplay(classLevel: any, room: any) {
+function formatClassRoomDisplay(classLevel: any) {
     const level = String(classLevel || "").trim();
-    const roomValue = String(room || "").trim();
-    if (!level && !roomValue) return "-";
-    if (!roomValue) return level || "-";
-    if (!level) return roomValue;
-    if (roomValue === level || roomValue.startsWith(`${level}/`)) return roomValue;
-    return `${level}/${roomValue}`;
+    return level || "-";
 }
 
 function normalizeGradeLabel(rawGrade: any) {
@@ -447,7 +442,7 @@ export function StudentProfileFeature({ session }: { session: any }) {
                         <h1 className="text-3xl font-bold">{`${profile.prefix || ""}${profile.first_name || ""} ${profile.last_name || ""}`.trim()}</h1>
                         <p className="text-emerald-100 mt-2">ข้อมูลส่วนตัวนักเรียน • {profile.student_code}</p>
                         <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                            <span className="rounded-full bg-white/15 px-3 py-1">{formatClassRoomDisplay(profile.class_level, profile.room)}</span>
+                            <span className="rounded-full bg-white/15 px-3 py-1">{formatClassRoomDisplay(profile.class_level)}</span>
                             {advisory?.current && (
                                 <span className="rounded-full bg-white/15 px-3 py-1">
                                     ที่ปรึกษา ปี {advisory.current.year || "-"} ภาค {advisory.current.semester || "-"}

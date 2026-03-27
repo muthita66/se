@@ -246,7 +246,7 @@ export function ScoreInputFeature({ session }: { session: any }) {
 
     const sectionOptions = useMemo(() => {
         if (!selectedYearKey || !selectedTermKey || !selectedSubjectKey) return [];
-        sections
+        return sections
             .filter((s) =>
                 getYearKey(s) === selectedYearKey &&
                 txt(s?.semester) === selectedTermKey &&

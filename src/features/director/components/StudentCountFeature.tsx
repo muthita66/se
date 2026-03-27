@@ -40,16 +40,14 @@ export function StudentCountFeature() {
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="p-4 border-b border-slate-200"><h3 className="font-bold text-slate-800">รายละเอียดแยกตามห้อง</h3></div>
+                        <div className="p-4 border-b border-slate-200"><h3 className="font-bold text-slate-800">รายละเอียดแยกตามชั้น</h3></div>
                         <table className="w-full"><thead><tr className="bg-slate-50 border-b border-slate-200">
                             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">ชั้น</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">ห้อง</th>
                             <th className="px-6 py-3 text-center text-sm font-semibold text-slate-600">จำนวน</th>
-                        </tr></thead><tbody>{data.map((r, i) => (
+                        </tr></thead><tbody>{Object.entries(grouped).map(([level, count], i) => (
                             <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-3 text-sm text-slate-800 font-medium">{r.class_level || "-"}</td>
-                                <td className="px-6 py-3 text-sm text-slate-600">{r.room || "-"}</td>
-                                <td className="px-6 py-3 text-sm text-center"><span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">{r.total}</span></td>
+                                <td className="px-6 py-3 text-sm text-slate-800 font-medium">{level}</td>
+                                <td className="px-6 py-3 text-sm text-center"><span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">{count as number}</span></td>
                             </tr>
                         ))}</tbody></table>
                     </div>

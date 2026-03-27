@@ -84,7 +84,7 @@ export const RegistrationService = {
             include: {
                 subjects: true,
                 teachers: { include: { name_prefixes: true } },
-                classrooms: { include: { levels: true } },
+                classrooms: true,
                 semesters: { include: { academic_years: true } },
                 enrollments: { select: { id: true } },
                 class_schedules: {
@@ -107,7 +107,7 @@ export const RegistrationService = {
                 credit: ta.subjects?.credit ? Number(ta.subjects.credit) : 0,
                 teacher_name: teacherName,
                 teacher_code: teacher?.teacher_code || '',
-                class_level: ta.classrooms?.levels?.name || '',
+                class_level: ta.classrooms?.room_name ? ta.classrooms.room_name.split('/')[0] : '',
                 room: ta.classrooms?.room_name || '',
                 capacity: ta.capacity || 0,
                 enrolled_count: ta.enrollments?.length || 0,
@@ -134,7 +134,7 @@ export const RegistrationService = {
             include: {
                 subjects: true,
                 teachers: { include: { name_prefixes: true } },
-                classrooms: { include: { levels: true } },
+                classrooms: true,
                 semesters: { include: { academic_years: true } },
                 enrollments: { select: { id: true } },
                 class_schedules: {
@@ -159,7 +159,7 @@ export const RegistrationService = {
                 credit: ta.subjects?.credit ? Number(ta.subjects.credit) : 0,
                 teacher_name: teacherName,
                 teacher_code: teacher?.teacher_code || '',
-                class_level: ta.classrooms?.levels?.name || '',
+                class_level: ta.classrooms?.room_name ? ta.classrooms.room_name.split('/')[0] : '',
                 room: ta.classrooms?.room_name || '',
                 capacity: ta.capacity || 0,
                 enrolled_count: ta.enrollments?.length || 0,
@@ -179,11 +179,11 @@ export const RegistrationService = {
                 id: true,
                 subject_id: true,
                 semester_id: true,
-                status: true,
             },
         });
         if (!assignment) throw new Error('ไม่พบรายวิชาที่เลือก');
-        if ((assignment.status || 'open') !== 'open') throw new Error('รายวิชานี้ไม่เปิดลงทะเบียน');
+        // If there's no status field in DB, we assume it's open
+        // if ((assignment.status || 'open') !== 'open') throw new Error('รายวิชานี้ไม่เปิดลงทะเบียน');
 
         const exactExisting = await prisma.enrollments.findFirst({
             where: { student_id, teaching_assignment_id },
@@ -274,7 +274,7 @@ export const RegistrationService = {
                     include: {
                         subjects: true,
                         teachers: { include: { name_prefixes: true } },
-                        classrooms: { include: { levels: true } },
+                        classrooms: true,
                         semesters: { include: { academic_years: true } },
                         class_schedules: {
                             include: { day_of_weeks: true, periods: true, rooms: true }
@@ -304,7 +304,7 @@ export const RegistrationService = {
                 subject_name: ta.subjects?.subject_name || '',
                 credit: ta.subjects?.credit ? Number(ta.subjects.credit) : 0,
                 teacher_name: teacherName,
-                class_level: ta.classrooms?.levels?.name || '',
+                class_level: ta.classrooms?.room_name || '',
                 room: ta.classrooms?.room_name || '',
                 year: ta.semesters?.academic_years?.year_name || '',
                 semester: ta.semesters?.semester_number || 0,

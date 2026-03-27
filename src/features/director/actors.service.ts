@@ -49,7 +49,7 @@ const ACTOR_DEFINITIONS: {
 
         // Events & Activities
         { name: 'events', label: 'กิจกรรม/อีเวนท์', group: 'events', groupLabel: 'กิจกรรม' },
-        { name: 'event_participants', label: 'ผู้เข้าร่วม', group: 'events', groupLabel: 'กิจกรรม' },
+
         { name: 'event_targets', label: 'กลุ่มเป้าหมาย', group: 'events', groupLabel: 'กิจกรรม' },
         { name: 'activity_evaluation_link', label: 'เชื่อมกิจกรรม-ประเมิน', group: 'events', groupLabel: 'กิจกรรม' },
 

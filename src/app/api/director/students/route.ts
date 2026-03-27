@@ -7,7 +7,6 @@ export async function GET(req: Request) {
         const data = await DirectorService.getStudents({
             search: searchParams.get('search') || undefined,
             class_level: searchParams.get('class_level') || undefined,
-            room: searchParams.get('room') || undefined
         });
         return successResponse(data);
     } catch (e: any) { return errorResponse('Failed', 500, e.message); }

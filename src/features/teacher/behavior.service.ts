@@ -9,16 +9,12 @@ export const TeacherBehaviorService = {
     },
 
     async getLevels() {
-        return prisma.levels.findMany({
-            orderBy: { name: 'asc' }
-        });
+        const classrooms = await prisma.classrooms.findMany({ select: { id: true, room_name: true } });
+        return Array.from(new Set(classrooms.map(c => c.room_name))).map((name, i) => ({ id: i + 1, name }));
     },
 
     async getClassrooms(level_id?: number | string) {
-        const id = level_id ? Number(level_id) : undefined;
         return prisma.classrooms.findMany({
-            where: id && !isNaN(id) ? { grade_level_id: id } : undefined,
-            include: { levels: { select: { name: true } } },
             orderBy: { room_name: 'asc' }
         });
     },
@@ -60,7 +56,7 @@ export const TeacherBehaviorService = {
             targetClassroomIds = [classroom_id];
         } else if (level_id) {
             const rooms = await prisma.classrooms.findMany({
-                where: { grade_level_id: level_id },
+                where: { id: level_id },
                 select: { id: true }
             });
             targetClassroomIds = rooms.map(r => r.id);
@@ -97,7 +93,7 @@ export const TeacherBehaviorService = {
                     where: {
                         classroom_id: { in: validClassroomIds }
                     },
-                    include: { classrooms: { include: { levels: true } } },
+                    include: { classrooms: true },
                     orderBy: { academic_year: 'desc' }
                 },
                 genders: true,
@@ -131,7 +127,7 @@ export const TeacherBehaviorService = {
                         where: {
                             classroom_id: { in: validClassroomIds }
                         },
-                        include: { classrooms: { include: { levels: true } } },
+                        include: { classrooms: true },
                         orderBy: { academic_year: 'desc' }
                     },
                     genders: true,
@@ -178,8 +174,8 @@ export const TeacherBehaviorService = {
                 first_name: s.first_name,
                 last_name: s.last_name,
                 gender: s.genders?.name || '',
-                class_level: c?.levels?.name || '',
-                class_level_id: c?.grade_level_id,
+                class_level: c?.room_name || '',
+                class_level_id: c?.id,
                 classroom_id: c?.id,
                 room: c?.room_name || '',
                 behavior_score: behaviorScore,
@@ -270,7 +266,7 @@ export const TeacherBehaviorService = {
                     include: {
                         name_prefixes: true,
                         classroom_students: {
-                            include: { classrooms: { include: { levels: true } } },
+                            include: { classrooms: true },
                             orderBy: { academic_year: 'desc' },
                             take: 1
                         }
