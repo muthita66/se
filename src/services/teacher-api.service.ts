@@ -159,13 +159,13 @@ export const TeacherApiService = {
             body: JSON.stringify({ action: 'category_type_delete', id })
         });
     },
-    async addScoreCategory(section_id: number, name: string, weight_percent: number, category_type_id?: number) {
+    async addScoreCategory(section_id: number, name: string, weight_percent: number | string, category_type_id?: number) {
         return fetchApi<any>('/api/teacher/scores', {
             method: 'POST',
             body: JSON.stringify({ action: 'category_add', section_id, name, weight_percent, category_type_id })
         });
     },
-    async updateScoreCategory(id: number, name: string, weight_percent: number, category_type_id?: number) {
+    async updateScoreCategory(id: number, name: string, weight_percent: number | string, category_type_id?: number) {
         return fetchApi<any>('/api/teacher/scores', {
             method: 'POST',
             body: JSON.stringify({ action: 'category_update', id, name, weight_percent, category_type_id })
@@ -283,6 +283,23 @@ export const TeacherApiService = {
         return fetchApi<any>('/api/teacher/fitness', {
             method: 'POST',
             body: JSON.stringify(data)
+        });
+    },
+    async getDailyHealthRecords(studentIds: number[], year: number, semester: number, recordDate: string, teacherId?: number) {
+        const params = new URLSearchParams({
+            action: 'daily-health',
+            teacher_id: String(teacherId || 1),
+            year: String(year),
+            semester: String(semester),
+            record_date: recordDate,
+            student_ids: studentIds.join(',')
+        });
+        return fetchApi<any[]>(`/api/teacher/fitness?${params.toString()}`);
+    },
+    async saveDailyHealthRecord(data: any) {
+        return fetchApi<any>('/api/teacher/fitness', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'save-daily-health', ...data })
         });
     },
 

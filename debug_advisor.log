@@ -52,6 +52,7 @@
 [2026-03-27T16:37:39.519Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
 [2026-03-27T16:37:39.547Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
 [2026-03-27T16:37:39.631Z] [ensureForm] Found 8 questions directly from section_id=1
+<<<<<<< HEAD
 [2026-03-27T18:15:53.071Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
 [2026-03-27T18:15:53.350Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
 [2026-03-27T18:16:00.338Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
@@ -190,3 +191,84 @@
 [2026-03-27T20:25:03.032Z] [Template] Form: 2, Period: 1
 [2026-03-27T20:25:03.035Z] [Template] Selected scaleTypeID: 2
 [2026-03-27T20:25:03.055Z] [Template] Scale options count: 4
+=======
+[2026-03-27T17:16:30.006Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T17:16:30.014Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T17:16:30.115Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T17:16:30.191Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T17:16:30.200Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T17:16:30.205Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T17:17:43.086Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T17:17:43.093Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T17:17:43.108Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T17:17:43.224Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T17:17:43.228Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T17:17:43.236Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T17:18:37.238Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T17:18:37.249Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T17:18:37.286Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T17:18:37.355Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T17:18:37.359Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T17:18:37.365Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T17:18:41.645Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T17:18:41.650Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T17:18:41.667Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T17:18:41.797Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T17:18:41.801Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T17:18:41.808Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T19:28:27.754Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T19:28:27.759Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T19:28:27.763Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T19:28:27.812Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T19:28:27.815Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T19:28:27.819Z] [ensureForm] Found 8 questions directly from section_id=1
+>>>>>>> e1c6f4e401ec18fb5dac1407160b09e5c353f3fa
+[2026-03-27T21:32:40.363Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
+[2026-03-27T21:32:40.538Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
+[2026-03-27T21:32:40.621Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
+[2026-03-27T21:32:40.659Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
+[2026-03-27T21:32:45.045Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T21:32:45.053Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T21:32:45.085Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T21:32:47.750Z] [ensureForm] Searching via Raw SQL for: แบบประเมินการอ่านคิดวิเคราะห์
+[2026-03-27T21:32:47.774Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T21:32:47.787Z] [ensureForm] Found 10 questions directly from section_id=9
+[2026-03-27T21:32:49.704Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
+[2026-03-27T21:32:49.785Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
+[2026-03-27T21:32:49.849Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
+[2026-03-27T21:32:49.899Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
+[2026-03-27T21:33:51.146Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
+[2026-03-27T21:33:51.241Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
+[2026-03-27T21:33:51.312Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
+[2026-03-27T21:33:51.347Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
+[2026-03-27T21:33:55.024Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
+[2026-03-27T21:33:55.116Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
+[2026-03-27T21:33:55.205Z] [EvaluationService] [getTeachingEvaluation] teacher_id=9, year=2568, semester=1
+[2026-03-27T21:33:55.242Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=2, final=2
+[2026-03-27T21:34:04.337Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T21:34:04.353Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T21:34:04.377Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T21:34:04.521Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T21:34:04.531Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T21:34:04.546Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T21:36:09.778Z] [EvaluationService] [getTeachingEvaluation] teacher_id=4, year=2568, semester=1
+[2026-03-27T21:36:09.802Z] [EvaluationService] [getTeachingEvaluation] raw=0, filtered=0, final=0
+[2026-03-27T21:36:09.862Z] [EvaluationService] [getTeachingEvaluation] teacher_id=4, year=2568, semester=1
+[2026-03-27T21:36:09.876Z] [EvaluationService] [getTeachingEvaluation] raw=0, filtered=0, final=0
+[2026-03-27T21:36:13.412Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T21:36:13.476Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T21:36:13.494Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T21:36:15.009Z] [ensureForm] Searching via Raw SQL for: แบบประเมินการอ่านคิดวิเคราะห์
+[2026-03-27T21:36:15.037Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T21:36:15.047Z] [ensureForm] Found 10 questions directly from section_id=9
+[2026-03-27T21:36:15.912Z] [ensureForm] Searching via Raw SQL for: แบบประเมินคุณลักษณะอันพึงประสงค์
+[2026-03-27T21:36:15.931Z] [ensureForm] Found 8 questions directly from section_id=1
+[2026-03-27T21:36:15.932Z] [resolveEvaluationPeriodId] Resolved semester_id: 1
+[2026-03-27T21:36:34.139Z] [EvaluationService] [getTeachingEvaluation] teacher_id=37, year=2568, semester=1
+[2026-03-27T21:36:34.179Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=1, final=1
+[2026-03-27T21:36:34.231Z] [EvaluationService] [getTeachingEvaluation] teacher_id=37, year=2568, semester=1
+[2026-03-27T21:36:34.266Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=1, final=1
+[2026-03-27T21:37:28.866Z] [EvaluationService] [getTeachingEvaluation] teacher_id=37, year=2568, semester=1
+[2026-03-27T21:37:28.917Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=1, final=1
+[2026-03-27T21:37:28.977Z] [EvaluationService] [getTeachingEvaluation] teacher_id=37, year=2568, semester=1
+[2026-03-27T21:37:29.009Z] [EvaluationService] [getTeachingEvaluation] raw=2, filtered=1, final=1

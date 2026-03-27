@@ -31,6 +31,7 @@ export function FitnessFeature({ session }: { session: any }) {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -166,53 +167,58 @@ export function FitnessFeature({ session }: { session: any }) {
             return;
         }
 
-        const payloads: any[] = [];
-
+        const items: any[] = [];
         students.forEach(s => {
             const res = results[s.id];
             if (!res) return;
 
-            // Save weight/height if present in weight_height OR all mode
+            const item: any = {
+                student_id: s.id,
+                weight: null,
+                height: null,
+                fitness_tests: []
+            };
+
+            let hasData = false;
+
+            // Health data (Weight/Height)
             if ((recordType === "weight_height" || recordType === "all") && (res.weight || res.height)) {
-                payloads.push({
-                    record_type: 'health',
-                    student_id: s.id,
-                    teacher_id: session.id,
-                    weight: res.weight ? parseFloat(res.weight) : null,
-                    height: res.height ? parseFloat(res.height) : null,
-                    year,
-                    semester: typeof semester === "number" ? semester : 1,
-                });
+                item.weight = res.weight ? parseFloat(res.weight) : null;
+                item.height = res.height ? parseFloat(res.height) : null;
+                hasData = true;
             }
 
-            // Save fitness if present in fitness OR all mode
-            if (recordType === "fitness" || recordType === "all") {
-                if ((res.result || "").trim()) {
-                    payloads.push({
-                        record_type: 'fitness',
-                        student_id: s.id,
-                        teacher_id: session.id,
-                        test_name: testName,
-                        result_value: res.result.trim(),
-                        standard_value: (res.standard || "-").trim(),
-                        status: (res.status || "ผ่าน").trim(),
-                        criteria_id: res.criteriaId || null,
-                        year,
-                        semester: typeof semester === "number" ? semester : 1,
-                    });
-                }
+            // Fitness data
+            if ((recordType === "fitness" || recordType === "all") && (res.result || "").trim()) {
+                item.fitness_tests.push({
+                    fitness_test_id: res.criteriaId || null,
+                    test_result: res.result.trim(),
+                    grade: res.status || "ผ่าน",
+                    is_passed: res.status !== "ไม่ผ่าน"
+                });
+                hasData = true;
+            }
+
+            if (hasData) {
+                items.push(item);
             }
         });
 
-        if (payloads.length === 0) {
+        if (items.length === 0) {
             alert("กรุณากรอกข้อมูลอย่างน้อย 1 รายการก่อนบันทึก");
             return;
         }
 
         setSaving(true);
         try {
-            await Promise.all(payloads.map((p) => TeacherApiService.saveFitnessTest(p)));
-            alert(`บันทึกเรียบร้อย ${payloads.length} รายการ`);
+            const payload = {
+                items,
+                teacher_id: session.id,
+                year,
+                semester: typeof semester === "number" ? semester : 1
+            };
+            await TeacherApiService.saveFitnessTest(payload);
+            alert(`บันทึกเรียบร้อย ${items.length} รายการ`);
         } catch (e: any) {
             alert(e?.message || "บันทึกข้อมูลไม่สำเร็จ");
         } finally {
