@@ -459,9 +459,10 @@ model semesters {
   events                  events[]
   exam_schedules          exam_schedules[]
   academic_years          academic_years            @relation(fields: [academic_year_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  student_fitness_records student_fitness_records[]
-  student_health_checkups student_health_checkups[]
-  teaching_assignments    teaching_assignments[]
+  student_fitness_records       student_fitness_records[]
+  student_health_checkups       student_health_checkups[]
+  student_daily_health_records  student_daily_health_records[]
+  teaching_assignments          teaching_assignments[]
 
   @@unique([academic_year_id, semester_number])
 }
@@ -526,6 +527,21 @@ model student_health_checkups {
   students        students   @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
+model student_daily_health_records {
+  id            Int        @id @default(autoincrement())
+  student_id    Int
+  semester_id   Int?
+  record_date   DateTime   @default(dbgenerated("CURRENT_DATE")) @db.Date
+  drinks_milk   Boolean?   @default(false)
+  brushes_teeth Boolean?   @default(false)
+  recorded_by   Int?
+  created_at    DateTime?  @default(now()) @db.Timestamp(6)
+  semesters     semesters? @relation(fields: [semester_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  students      students   @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([student_id, semester_id, record_date])
+}
+
 model student_health_profiles {
   student_id              Int       @id
   blood_type              String?   @db.VarChar(5)
@@ -582,8 +598,9 @@ model students {
   enrollments             enrollments[]
   student_allergies       student_allergies[]
   student_diseases        student_diseases[]
-  student_fitness_records student_fitness_records[]
-  student_health_checkups student_health_checkups[]
+  student_fitness_records      student_fitness_records[]
+  student_health_checkups      student_health_checkups[]
+  student_daily_health_records student_daily_health_records[]
   genders                 genders?                  @relation(fields: [gender_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   name_prefixes           name_prefixes?            @relation(fields: [prefix_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   student_statuses        student_statuses?         @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

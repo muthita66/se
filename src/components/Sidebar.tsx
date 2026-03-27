@@ -25,6 +25,7 @@ export default async function Sidebar() {
             { name: 'รายชื่อนักเรียน', href: '/teacher/students' },
             { name: 'บันทึกเวลาเรียน', href: '/teacher/attendance' },
             { name: 'บันทึกสุขภาพ', href: '/teacher/fitness' },
+            { name: 'บันทึกการกินนมและแปรงฟัน', href: '/teacher/daily-health' },
             { name: 'ข้อมูลรายวิชา', href: '/teacher/scores' },
             { name: 'บันทึกคะแนนพฤติกรรม', href: '/teacher/behavior' },
             { name: 'ปฏิทินกิจกรรม', href: '/teacher/activity_calendar' },

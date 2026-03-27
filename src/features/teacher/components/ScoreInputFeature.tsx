@@ -432,10 +432,18 @@ export function ScoreInputFeature({ session }: { session: any }) {
         setCategories(prev => prev.map(c => c.id === id ? { ...c, name, weight_percent: weight, category_type_id: typeId, grade_category_types: categoryTypes.find(t => t.id === typeId) } : c));
     };
 
+    const syncCategoriesToDb = async () => {
+        if (!hasSection || !categories.length) return;
+        for (const cat of categories) {
+            await TeacherApiService.updateScoreCategory(cat.id, cat.name || "", cat.weight_percent, cat.category_type_id);
+        }
+    };
+
     const handleAddCategory = async (name: string, weight: number, typeId?: number) => {
         if (!hasSection) return;
         setCategorySaving(true);
         try {
+            await syncCategoriesToDb();
             await TeacherApiService.addScoreCategory(sectionId, name, weight, typeId);
             await loadCategories(sectionId);
         } catch (err) {
@@ -453,6 +461,8 @@ export function ScoreInputFeature({ session }: { session: any }) {
             setNewCategoryTypeName("");
             const types = await TeacherApiService.getGradeCategoryTypes();
             setCategoryTypes(types);
+            await syncCategoriesToDb();
+            await loadCategories(sectionId);
         } catch (err) {
             alert("Failed to add category type");
         } finally {
@@ -469,6 +479,7 @@ export function ScoreInputFeature({ session }: { session: any }) {
 
         try {
             console.log("Deleting category ID:", id);
+            await syncCategoriesToDb();
             await TeacherApiService.deleteScoreCategory(id);
             await loadSectionData(); // Reload headers as they might have been deleted
             console.log("Deletion successful");
@@ -490,6 +501,9 @@ export function ScoreInputFeature({ session }: { session: any }) {
             setEditingCategoryTypeId(null);
             const types = await TeacherApiService.getGradeCategoryTypes();
             setCategoryTypes(types);
+            
+            await syncCategoriesToDb();
+            await loadCategories(sectionId);
         } catch (err) {
             alert("Failed to update category type");
         } finally {
@@ -504,6 +518,9 @@ export function ScoreInputFeature({ session }: { session: any }) {
             await TeacherApiService.deleteGradeCategoryType(id);
             const types = await TeacherApiService.getGradeCategoryTypes();
             setCategoryTypes(types);
+            
+            await syncCategoriesToDb();
+            await loadCategories(sectionId);
         } catch (err: any) {
             console.error("Failed to delete category type:", err);
             alert("ไม่สามารถลบได้ เนื่องจากรายการนี้ถูกใช้งานอยู่ในระบบ");
@@ -1508,7 +1525,7 @@ export function ScoreInputFeature({ session }: { session: any }) {
                                                 <input
                                                     type="number"
                                                     value={cat.weight_percent === 0 ? "" : cat.weight_percent}
-                                                    onChange={(e) => handleUpdateCategory(cat.id, "", toNum(e.target.value), cat.category_type_id)}
+                                                    onChange={(e) => handleUpdateCategory(cat.id, cat.name || "", toNum(e.target.value), cat.category_type_id)}
                                                     className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm text-center outline-none focus:ring-2 focus:ring-emerald-400"
                                                 />
                                                 <span className="text-xs text-slate-400">%</span>
