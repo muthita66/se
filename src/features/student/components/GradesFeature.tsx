@@ -8,25 +8,34 @@ import { PrintButton } from "@/components/PrintButton";
 import { getAcademicSemesterDefault, getCurrentAcademicYearBE } from "@/features/student/academic-term";
 
 const GRADE_POINT_MAP: Record<string, number> = {
-    A: 4,
+    A: 4.0,
+    "4.0": 4.0,
     "B+": 3.5,
-    B: 3,
+    "3.5": 3.5,
+    B: 3.0,
+    "3.0": 3.0,
     "C+": 2.5,
-    C: 2,
+    "2.5": 2.5,
+    C: 2.0,
+    "2.0": 2.0,
     "D+": 1.5,
-    D: 1,
+    "1.5": 1.5,
+    D: 1.0,
+    "1.0": 1.0,
     F: 0,
+    "0": 0,
+    "0.0": 0,
 };
 
 const NUMERIC_GRADE_TO_LETTER_MAP: Record<string, string> = {
-    "4": "A",
-    "3.5": "B+",
-    "3": "B",
-    "2.5": "C+",
-    "2": "C",
-    "1.5": "D+",
-    "1": "D",
-    "0": "F",
+    "4": "4.0",
+    "3.5": "3.5",
+    "3": "3.0",
+    "2.5": "2.5",
+    "2": "2.0",
+    "1.5": "1.5",
+    "1": "1.0",
+    "0": "0",
 };
 
 function normalizeGradeLabel(rawGrade: unknown): string | null {
@@ -37,12 +46,29 @@ function normalizeGradeLabel(rawGrade: unknown): string | null {
     return null;
 }
 
+function deriveGradeFromScore(score: number): { label: string; point: number } {
+    if (score >= 80) return { label: "4.0", point: 4 };
+    if (score >= 75) return { label: "3.5", point: 3.5 };
+    if (score >= 70) return { label: "3.0", point: 3 };
+    if (score >= 65) return { label: "2.5", point: 2.5 };
+    if (score >= 60) return { label: "2.0", point: 2 };
+    if (score >= 55) return { label: "1.5", point: 1.5 };
+    if (score >= 50) return { label: "1.0", point: 1 };
+    return { label: "0", point: 0 };
+}
+
 function getGradePointValue(row: any): number | null {
     const gp = Number(row?.grade_point);
     if (row?.grade_point != null && row?.grade_point !== "" && Number.isFinite(gp)) return gp;
 
     const label = normalizeGradeLabel(row?.grade);
-    return label ? (GRADE_POINT_MAP[label] ?? null) : null;
+    if (label) return (GRADE_POINT_MAP[label] ?? null);
+
+    // Fallback: derive from total score if grade is missing
+    const score = row?.total != null ? Number(row.total) : null;
+    if (score !== null) return deriveGradeFromScore(score).point;
+
+    return null;
 }
 
 function getCreditValue(row: any): number {
@@ -52,7 +78,10 @@ function getCreditValue(row: any): number {
 
 function isPassedGrade(row: any): boolean {
     const label = normalizeGradeLabel(row?.grade);
-    return label !== null && label !== "F";
+    if (label !== null) return label !== "F" && label !== "0";
+
+    const score = row?.total != null ? Number(row.total) : null;
+    return score !== null && score >= 50;
 }
 
 interface GradesFeatureProps {
@@ -414,13 +443,21 @@ export function GradesFeature({ session }: GradesFeatureProps) {
                                     </tr>
                                 ) : (
                                     grades.map((r: any, idx: number) => {
+                                        const totalScore = typeof r.total === 'number' ? r.total : (r.total ? parseFloat(r.total) : null);
+                                        const formattedTotal = totalScore !== null ? totalScore.toFixed(2) : "-";
+
                                         const displayGrade = normalizeGradeLabel(r.grade);
+                                        const derived = totalScore !== null ? deriveGradeFromScore(totalScore) : null;
+                                        const finalGradeLabel = displayGrade ?? derived?.label ?? "-";
+
                                         const hasGrade = displayGrade !== null;
-                                        const isFailed = displayGrade === "F";
-                                        const statusLabel = !hasGrade
-                                            ? "รอผล"
-                                            : (isFailed ? "ไม่ผ่าน" : "ผ่าน");
-                                        const statusClass = !hasGrade
+                                        const isFailed = hasGrade ? (displayGrade === "F" || displayGrade === "0") : (totalScore !== null && totalScore < 50);
+
+                                        const statusLabel = hasGrade
+                                            ? (isFailed ? "ไม่ผ่าน" : "ผ่าน")
+                                            : (totalScore !== null ? (totalScore >= 50 ? "ผ่าน" : "ไม่ผ่าน") : "รอผล");
+
+                                        const statusClass = (statusLabel === "รอผล")
                                             ? "bg-amber-100 text-amber-700 print:bg-transparent print:text-black"
                                             : (isFailed
                                                 ? "bg-red-100 text-red-700 print:bg-transparent print:text-black"
@@ -431,8 +468,8 @@ export function GradesFeature({ session }: GradesFeatureProps) {
                                                 <td className="px-6 py-3 print:px-4 print:py-2 font-medium text-slate-900">{r.subject_code || "-"}</td>
                                                 <td className="px-6 py-3 print:px-4 print:py-2">{r.subject || "-"}</td>
                                                 <td className="px-6 py-3 print:px-4 print:py-2 text-center">{r.credit || "-"}</td>
-                                                <td className="px-6 py-3 print:px-4 print:py-2 text-center">{r.total ?? "-"}</td>
-                                                <td className="px-6 py-3 print:px-4 print:py-2 text-center font-bold text-slate-800">{displayGrade ?? "-"}</td>
+                                                <td className="px-6 py-3 print:px-4 print:py-2 text-center">{formattedTotal}</td>
+                                                <td className="px-6 py-3 print:px-4 print:py-2 text-center font-bold text-slate-800">{finalGradeLabel}</td>
                                                 <td className="px-6 py-3 print:px-4 print:py-2 text-center">
                                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusClass}`}>
                                                         {statusLabel}

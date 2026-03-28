@@ -13,7 +13,7 @@ interface PrintButtonProps {
 export function PrintButton({
     contentRef,
     label = "พิมพ์ / บันทึก PDF",
-    documentTitle = "WinAI School Report",
+    documentTitle = "รายงานโรงเรียนบ้านคลองหนองเหล็ก",
     className = "",
 }: PrintButtonProps) {
     const reactToPrintFn = useReactToPrint({

@@ -11,7 +11,7 @@ export default async function Header() {
                     W
                 </div>
                 <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-600 tracking-tight">
-                    WinAI School
+                    โรงเรียนบ้านคลองหนองเหล็ก
                 </span>
             </div>
 

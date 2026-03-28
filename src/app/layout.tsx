@@ -8,13 +8,17 @@ const kanit = Kanit({
 });
 
 export const metadata = {
-    title: 'WinAI School',
-    description: 'ระบบจัดการโรงเรียน WinAI - ตรวจสอบเกรด ตารางเรียน สุขภาพ และอื่นๆ',
+    title: 'โรงเรียนบ้านคลองหนองเหล็ก',
+    description: 'ระบบสารสนเทศโรงเรียนวัดคลองหนองเหล็ก',
+    openGraph: {
+        title: 'โรงเรียนบ้านคลองหนองเหล็ก',
+        description: 'ระบบสารสนเทศโรงเรียนวัดคลองหนองเหล็ก',
+    },
     manifest: '/manifest.json',
     appleWebApp: {
         capable: true,
         statusBarStyle: 'default',
-        title: 'WinAI School',
+        title: 'โรงเรียนบ้านคลองหนองเหล็ก',
     },
 };
 

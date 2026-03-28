@@ -86,9 +86,7 @@ export function DashboardFeature({ session }: { session: any }) {
     const [tab, setTab] = useState<string>('overview');
     const [filterOptions, setFilterOptions] = useState<any>(null);
     const [filters, setFilters] = useState<{ gender: string; class_level: string; subject_id: string; learning_group_id?: string }>({ gender: '', class_level: '', subject_id: '', learning_group_id: '' });
-    const [expandedRisk, setExpandedRisk] = useState<number | null>(null);
-    const [isAtRiskExpand, setIsAtRiskExpand] = useState(false);
-    const [atRiskLevelFilter, setAtRiskLevelFilter] = useState<string>('');
+
 
     useEffect(() => {
         DirectorApiService.getFilterOptions()
@@ -142,7 +140,7 @@ export function DashboardFeature({ session }: { session: any }) {
     const events = d.upcomingEvents || [];
     const grades = d.grades || {};
     const alerts = d.alerts || [];
-    const atRisk = d.atRiskStudents || [];
+
     const adv = d.advanced || {};
     const exSummary = adv.executiveSummary || [];
     const advRisk = adv.predictiveRisk || [];
@@ -153,115 +151,13 @@ export function DashboardFeature({ session }: { session: any }) {
     const comparisons = d.comparisons || {};
     const tabs = [
         { id: 'overview', label: 'ภาพรวม', icon: ChartBarIcon },
-        { id: 'students', label: 'นักเรียน', icon: UserGroupIcon, badge: atRisk.length ? atRisk.length : null, badgeType: 'error' },
+        { id: 'students', label: 'นักเรียน', icon: UserGroupIcon },
         { id: 'hr', label: 'บุคลากร', icon: UserIcon, badge: hr.nearRetirement ? hr.nearRetirement : null, badgeType: 'warning' },
         { id: 'health', label: 'สุขภาพ', icon: HeartIcon, badge: health.healthIssues?.length ? health.healthIssues.length : null, badgeType: 'warning' },
         { id: 'curriculum', label: 'หลักสูตร', icon: BookOpenIcon },
         { id: 'projects_budget', label: 'โครงการและงบประมาณ', icon: CurrencyDollarIcon },
     ];
-    const renderAtRiskPanel = () => {
-        const filteredAtRisk = atRisk.filter((entry: any) => {
-            const st = entry?.student;
-            if (!st) return false;
-            if (atRiskLevelFilter && st.class_level !== atRiskLevelFilter) return false;
-            return true;
-        });
 
-        return (
-            <div className="bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden mb-5">
-                <div className="p-4 bg-gradient-to-r from-red-50 to-amber-50 border-b border-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all">
-                    <button
-                        onClick={() => setIsAtRiskExpand(!isAtRiskExpand)}
-                        className="text-left flex-1"
-                    >
-                        <h3 className="font-bold text-red-800 flex items-center gap-2 text-lg">
-                            <ExclamationTriangleIcon className="w-5 h-5 text-red-600 animate-pulse" />
-                            ระดับชั้นและกลุ่มนักเรียนเสี่ยง (Predictive Matrix)
-                        </h3>
-                        <p className="text-xs text-red-600 mt-0.5">นักเรียนที่มีความเสี่ยงด้านวิชาการ / เข้าเรียน / พฤติกรรม</p>
-                    </button>
-
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        {isAtRiskExpand && (
-                            <div className="flex items-center gap-2 mr-2">
-                                <select
-                                    value={atRiskLevelFilter}
-                                    onChange={e => setAtRiskLevelFilter(e.target.value)}
-                                    className="px-2 py-1.5 border border-red-200 rounded-lg text-sm bg-white text-red-800 outline-none focus:ring-1 focus:ring-red-400 font-medium cursor-pointer"
-                                >
-                                    <option value="">ระดับชั้น (ทั้งหมด)</option>
-                                    {(filterOptions?.classLevels || []).map((l: string) => <option key={l} value={l}>{l}</option>)}
-                                </select>
-                            </div>
-                        )}
-                        <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold border border-red-200">{filteredAtRisk.length} คน</span>
-                        <button onClick={() => setIsAtRiskExpand(!isAtRiskExpand)} className="text-red-400 text-sm font-bold shrink-0 ml-1">{isAtRiskExpand ? '▲ ปิด' : '▼ เปิด'}</button>
-                    </div>
-                </div>
-                {isAtRiskExpand && (
-                    filteredAtRisk.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500 text-sm bg-slate-50/50">ไม่พบนักเรียนเฝ้าระวังจากเงื่อนไขที่เลือก</div>
-                    ) : (
-                        <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto animate-in slide-in-from-top duration-300">
-                            {filteredAtRisk.map((entry: any, i: number) => {
-                                const st = entry?.student;
-                                if (!st) return null;
-                                const reasons = entry.reasons || [];
-                                const highCount = reasons.filter((r: any) => r.severity === 'high').length;
-                                const isExpanded = expandedRisk === i;
-
-                                return (
-                                    <div key={st.id || i} className={`hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-red-50/30' : ''}`}>
-                                        <button onClick={() => setExpandedRisk(isExpanded ? null : i)} className="w-full px-4 py-3 flex items-center gap-3 text-left">
-                                            <span className="text-sm text-slate-400 w-6 shrink-0">{i + 1}</span>
-                                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${highCount > 0 ? 'bg-red-500 animate-pulse' : reasons.some((r: any) => r.severity === 'medium') ? 'bg-amber-400' : 'bg-blue-400'}`} />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-medium text-slate-800 truncate">
-                                                    {st.prefix || ''}{st.first_name || ''} {st.last_name || ''}
-                                                    <span className="text-slate-400 font-normal ml-2">{st.student_code}</span>
-                                                </div>
-                                                <div className="text-sm text-slate-500">
-                                                    {st.class_level || '-'} • {st.gender || '-'} • <span className="font-bold text-emerald-600">เกรดเฉลี่ย: {st.gpa !== null && st.gpa !== undefined ? st.gpa : '-'}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-1 shrink-0">
-                                                {reasons.some((r: any) => r.type === 'grade') && <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">เกรด</span>}
-                                                {reasons.some((r: any) => r.type === 'absent') && <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">ขาด</span>}
-                                                {reasons.some((r: any) => r.type === 'conduct') && <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-700">พฤติกรรม</span>}
-                                            </div>
-                                            <span className="text-slate-400 text-xs ml-2">{isExpanded ? '▲' : '▼'}</span>
-                                        </button>
-                                        {isExpanded && (
-                                            <div className="px-4 pb-4 pl-14 space-y-1.5 animate-in slide-in-from-top-1">
-                                                {reasons.map((r: any, j: number) => {
-                                                    const Icon = r.type === 'grade' ? ChartBarIcon : r.type === 'absent' ? ExclamationCircleIcon : ExclamationTriangleIcon;
-                                                    return (
-                                                        <div key={j} className={`flex items-start gap-2 text-sm p-2.5 rounded-lg border ${r.severity === 'high' ? 'bg-red-50 border-red-200 text-red-700' : r.severity === 'medium' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                                                            <Icon className="w-4 h-4 mt-0.5 shrink-0" />
-                                                            <div>
-                                                                <span className="font-medium">{r.type === 'grade' ? 'ผลการเรียน' : r.type === 'absent' ? 'การเข้าเรียน' : 'พฤติกรรม'}: </span>
-                                                                <span>{r.detail}</span>
-                                                            </div>
-                                                            <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded text-xs font-bold ${r.severity === 'high' ? 'bg-red-200 text-red-800' :
-                                                                r.severity === 'medium' ? 'bg-amber-200 text-amber-800' :
-                                                                    'bg-blue-100 text-blue-700'
-                                                                }`}>
-                                                                {r.severity === 'high' ? 'เสี่ยงมาก' : r.severity === 'medium' ? 'เริ่มเสี่ยง' : 'เฝ้าระวัง'}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )
-                )}
-            </div>
-        );
-    };
 
     return (
         <div className="space-y-5">
@@ -382,8 +278,7 @@ export function DashboardFeature({ session }: { session: any }) {
                         ))}
                     </div>
 
-                    {/* AT-RISK STUDENTS PANEL (PREDICTIVE MATRIX) */}
-                    {renderAtRiskPanel()}
+
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 lg:col-span-1">

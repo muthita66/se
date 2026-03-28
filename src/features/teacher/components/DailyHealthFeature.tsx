@@ -137,12 +137,12 @@ export function DailyHealthFeature({ session }: { session: any }) {
 
     return (
         <div className="space-y-6">
-            <section className="bg-gradient-to-br from-sky-500 to-indigo-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+            <section className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-full bg-white opacity-5 transform -skew-x-12 translate-x-20"></div>
                 <div className="relative z-10">
                     <div className="inline-block bg-white/20 px-3 py-1 rounded-full text-sm font-medium mb-4">Daily Health</div>
                     <h1 className="text-3xl font-bold">บันทึกการกินนมและการแปรงฟัน</h1>
-                    <p className="text-sky-100 mt-2">บันทึกข้อมูลการดื่มนมและการแปรงฟันประจำวันของนักเรียน</p>
+                    <p className="text-emerald-100 mt-2">บันทึกข้อมูลการดื่มนมและการแปรงฟันประจำวันของนักเรียน</p>
                 </div>
             </section>
 
@@ -186,20 +186,20 @@ export function DailyHealthFeature({ session }: { session: any }) {
                 <button
                     disabled={!isAdvisor}
                     onClick={loadStudents}
-                    className="px-5 py-2 bg-sky-600 text-white rounded-xl font-medium hover:bg-sky-700 transition-colors shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     ค้นหา
                 </button>
             </div>
 
             {isAdvisor === false && (
-                <div className="bg-sky-50 border border-sky-200 rounded-2xl p-6 text-sky-800 flex items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-emerald-800 flex items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
                     <svg className="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div>
                         <h3 className="font-bold text-lg">เฉพาะครูที่ปรึกษา</h3>
-                        <p className="text-sky-700">คุณไม่สามารถบันทึกข้อมูลได้ เนื่องจากคุณไม่ได้เป็นครูที่ปรึกษาประจำชั้นใดๆ</p>
+                        <p className="text-emerald-700">คุณไม่สามารถบันทึกข้อมูลได้ เนื่องจากคุณไม่ได้เป็นครูที่ปรึกษาประจำชั้นใดๆ</p>
                     </div>
                 </div>
             )}
@@ -222,7 +222,7 @@ export function DailyHealthFeature({ session }: { session: any }) {
                                         <span>🥛 ดื่มนม</span>
                                         <button
                                             type="button"
-                                            className="text-[10px] text-sky-600 hover:text-sky-800 font-bold"
+                                            className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold"
                                             onClick={() => {
                                                 const allChecked = students.every(s => dailyHealth[s.id]?.drinks_milk);
                                                 const newMap = { ...dailyHealth };
@@ -242,7 +242,7 @@ export function DailyHealthFeature({ session }: { session: any }) {
                                         <span>🪥 แปรงฟัน</span>
                                         <button
                                             type="button"
-                                            className="text-[10px] text-sky-600 hover:text-sky-800 font-bold"
+                                            className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold"
                                             onClick={() => {
                                                 const allChecked = students.every(s => dailyHealth[s.id]?.brushes_teeth);
                                                 const newMap = { ...dailyHealth };
@@ -284,7 +284,7 @@ export function DailyHealthFeature({ session }: { session: any }) {
                                                         }));
                                                     }}
                                                 />
-                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                             </label>
                                         </td>
                                         <td className="px-4 py-3 text-center">
@@ -300,7 +300,7 @@ export function DailyHealthFeature({ session }: { session: any }) {
                                                         }));
                                                     }}
                                                 />
-                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                             </label>
                                         </td>
                                     </tr>
@@ -312,7 +312,7 @@ export function DailyHealthFeature({ session }: { session: any }) {
                         <button onClick={handleCancel} className="px-8 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-semibold hover:bg-slate-200 transition-colors">
                             ยกเลิก
                         </button>
-                        <button onClick={handleSaveAll} disabled={saving} className="px-8 py-2.5 bg-sky-600 text-white rounded-xl font-semibold hover:bg-sky-700 transition-colors disabled:opacity-50">
+                        <button onClick={handleSaveAll} disabled={saving} className="px-8 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50">
                             {saving ? "กำลังบันทึก..." : "บันทึกทั้งหมด"}
                         </button>
                     </div>
